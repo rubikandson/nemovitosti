@@ -1,0 +1,86 @@
+name: Denní aktualizace dat
+
+on:
+  push:
+    branches: [main]        # první naplnění dat hned po nahrání repa
+  schedule:
+    - cron: "0 4 * * *"   # každý den 4:00 UTC (6:00 v létě v ČR)
+  workflow_dispatch:        # + ruční spuštění tlačítkem
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aktualizace-dat
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync na nejnovejsi main (pojistka proti souběhu s druhou pipeline)
+        run: git fetch origin main && git reset --hard origin/main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalace závislostí
+        run: pip install -r requirements.txt
+
+      - name: Databáze (init při prvním běhu)
+        run: python -m src.main init
+
+      - name: Import ze Sreality (byty, Praha)
+        run: python -m src.main import-sreality "https://www.sreality.cz/hledani/prodej/byty/praha" --max-stranek 60 2>&1 | tee docs/import_log.txt
+        continue-on-error: true   # když Sreality změní API, publikuj aspoň stávající data
+
+      - name: Import ze Sreality (byty, Střední Čechy — schváleno uživatelem 2026-08, jen velká města >5000 obyv. mají cenovou mapu)
+        run: python -m src.main import-sreality "https://www.sreality.cz/hledani/prodej/byty/stredocesky-kraj" --max-stranek 25 2>&1 | tee docs/import_log_stredocechy.txt
+        continue-on-error: true
+
+      - name: Extrakce nájemného MFČR
+        run: python scripts/mfcr_najemne.py 2>&1 | tee docs/diag_log.txt
+        continue-on-error: true
+
+      - name: Dotažení detailů nabídek (stav, rok, balkon, parkování)
+        run: python -m src.main import-detaily --limit 500 2>&1 | tail -5 | tee docs/detail_log.txt
+        continue-on-error: true
+
+      - name: Dohledání typu parkování (garáž/stání/venkovní) u starších nabídek
+        run: python -m src.main doplnit-typ-parkovani --limit 500 2>&1 | tail -5 | tee docs/typ_parkovani_log.txt
+        continue-on-error: true
+
+
+
+      - name: Přepočet ocenění
+        run: python -m src.main ocenit 2>&1 | tee docs/ocenit_log.txt
+
+      - name: Statická appka do docs/
+        run: python -m src.main build-static 2>&1 | tee docs/build_log.txt
+
+      - name: Commit dat
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/nemovitosti.db data/najemne_mfcr.csv docs/ 2>/dev/null || git add data/nemovitosti.db docs/
+          if git diff --cached --quiet; then
+            echo "žádné změny k commitu"
+            exit 0
+          fi
+          git commit -m "Denní aktualizace dat ($(date +%F))"
+          # "Ruční úprava nabídky" teď běží ve vlastní concurrency skupině
+          # (viz uprava.yml), takže se s tímhle během může skutečně potkat —
+          # zkusit push víckrát s rebase, než to vzdát.
+          n=0
+          until git pull --rebase origin main && git push; do
+            n=$((n+1))
+            if [ "$n" -ge 8 ]; then
+              echo "Push selhal i po opakovaných pokusech."
+              exit 1
+            fi
+            sleep $((RANDOM % 8 + 2))
+          done

@@ -1,0 +1,5 @@
+nazev,url,dispozice,ctvrt,plocha_m2,cena_czk,zakladni_cena_m2,lokalita,stav,rok_vystavby,balkon,parkovani,dalsi_koef_pct,najem_m2_mesic,najem_priplatky_rocni
+"Byt 2+kk Smíchov (Štorkánova)",https://www.sreality.cz/detail/prodej/byt/2+kk/praha-smichov-storkanova/2876236,2+kk,Radlice,59,10000000,169571,"u MHD / metro, u obchodu a služeb, tiché místo, parky v docházce","Žádná / běžná údržba/Novostavba",2008,Ano,Ano 2*,0,302,30000
+"Byt 2+kk Bubeneč (Českomalínská)",https://www.sreality.cz/detail/prodej/byt/2+kk/praha-bubenec-ceskomalinska/1667134284,2+kk,Dejvice,54,8000000,165000,"u MHD / metro, u obchodu a služeb, tiché místo, parky v docházce","Generální rekonstrukce (≤10 let)",1930,Ano,Ne,5,350,
+"Byt 3+kk Žižkov",https://example.com/3,3+kk,Žižkov,72,8900000,,"standardní dostupnost, běžná občanská vybavenost, žádné extrémy","Částečná rekonstrukce (kuchyň/koupelna ≤10 let)",1965,Ne,Ne,0,320,
+"Byt 1+kk Nusle",https://example.com/4,1+kk,Nusle,34,4300000,,"daleko od MHD/služeb, hluk / bariéry (rušná silnice, železnice), horší pěší dostupnost","Žádná / běžná údržba/Novostavba",2019,Ano,Ne,0,340,

@@ -1,0 +1,45 @@
+name: Týdenní report příležitostí
+
+# Deterministická náhrada Cowork úlohy `tydenni-report-prilezitosti` pro svět
+# bez Claude. Běží každé pondělí, spočítá top 10 nových podhodnocených bytů
+# (Praha + Střední Čechy) z docs/data.json a commitne docs/weekly_report.md.
+# ChatGPT Task pak jen stáhne ten malý soubor a ukáže ho (viz docs/HANDOFF_GPT.md).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # pondělí 06:00 UTC (po denní pipeline ve 4:00 UTC)
+  workflow_dispatch: {}     # ruční spuštění tlačítkem v Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-report
+  cancel-in-progress: false
+
+jobs:
+  weekly-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vygeneruj týdenní report
+        run: python scripts/weekly_report.py
+
+      - name: Commit reportu (jen když se změnil)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain docs/weekly_report.md)" ]; then
+            git add docs/weekly_report.md
+            git commit -m "Týdenní report příležitostí ($(date -u +%Y-%m-%d))"
+            git push
+          else
+            echo "Report se nezměnil, nic necommituju."
+          fi

@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data/imports/*
+!data/imports/.gitkeep
+.venv/
+Report_pro_Codex_Google_Sheets_App.docx

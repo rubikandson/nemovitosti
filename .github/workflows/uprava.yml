@@ -1,0 +1,63 @@
+name: Ruční úprava nabídky
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  # Vlastní skupina PER ISSUE (ne sdílená "aktualizace-dat"): dřív sdílená
+  # skupina znamenala, že GitHub drží ve frontě jen JEDEN čekající běh na
+  # skupinu — když se rychle za sebou otevřelo víc issues (víc kliknutí na
+  # hvězdičku watchlistu), nebo to kolidovalo s denní/měsíční pipeline,
+  # starší čekající běhy se TICHO zrušily a issue zůstalo navždy otevřené,
+  # bez chybové hlášky (takhle přišly o zápis issues #2, #3, #4, #10 —
+  # zjištěno a ručně dopsáno 2026-07-28). Každé issue teď běží ve své
+  # vlastní skupině, takže se navzájem nemůžou zrušit.
+  group: uprava-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  aplikuj:
+    # bezpečnost: úpravy přijímáme jen od vlastníka repozitáře
+    if: startsWith(github.event.issue.title, 'uprava:') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Aplikace úpravy
+        run: python scripts/aplikuj_upravu.py
+      - name: Přepočet a publikace
+        run: |
+          python -m src.main ocenit
+          python -m src.main build-static
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/nemovitosti.db docs/
+          if git diff --cached --quiet; then
+            echo "žádné změny k commitu"
+            exit 0
+          fi
+          git commit -m "Ruční úprava nabídky (issue #${{ github.event.issue.number }})"
+          # Skupiny už nesdílíme s denní/měsíční pipeline, takže skutečný
+          # souběžný push je teď možný (víc issues najednou, nebo souběh
+          # s update.yml) — zkusit víckrát s rebase, než to vzdát.
+          n=0
+          until git pull --rebase origin main && git push; do
+            n=$((n+1))
+            if [ "$n" -ge 8 ]; then
+              echo "Push selhal i po opakovaných pokusech — issue zůstane otevřené k ruční kontrole."
+              exit 1
+            fi
+            sleep $((RANDOM % 8 + 2))
+          done
+      - name: Zavřít issue
+        run: gh issue close ${{ github.event.issue.number }} -c "Zapsáno a přepočítáno ✅"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

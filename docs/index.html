@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ocenění nemovitostí</title>
+<style>
+:root{--bg:#0f1420;--panel:#171e2e;--line:#252f45;--tx:#e8ecf4;--mut:#8b96ad;--acc:#4f8ef7;--ok:#3ecf8e;--warn:#f7b84f;--bad:#f76f6f}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:17px}
+header .sub{color:var(--mut);font-size:12px}
+main{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 60px)}
+aside{padding:18px;border-right:1px solid var(--line);background:var(--panel)}
+aside h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 6px}
+aside h2:first-child{margin-top:0}
+select,input{width:100%;background:#0d1220;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
+select[multiple]{height:130px}
+.checklist{max-height:130px;overflow-y:auto;background:#0d1220;border:1px solid var(--line);border-radius:6px;padding:4px 9px}
+.checklist label{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:13px;cursor:pointer}
+.checklist input{width:auto}
+.checklist-actions{display:flex;gap:8px;margin-top:4px}
+.checklist-actions button{flex:1;background:#232c42;color:var(--tx);font-size:11px;padding:5px}
+.row2{display:flex;gap:8px}
+button{cursor:pointer;border:0;border-radius:6px;padding:9px 12px;font-size:13px;font-weight:600}
+.btn-p{background:var(--acc);color:#fff;width:100%;margin-top:14px}
+.btn-s{background:#232c42;color:var(--tx);width:100%;margin-top:8px}
+section{padding:18px 22px;overflow:auto}
+.stats{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
+.stat b{font-size:18px}
+.stat span{display:block;color:var(--mut);font-size:11px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr.l:hover{background:#1c2438;cursor:pointer}
+.sleva-ok{color:var(--ok);font-weight:700}.sleva-mid{color:var(--warn);font-weight:600}.sleva-bad{color:var(--bad)}
+.detail{background:#121829}
+.detail td{padding:14px 16px;white-space:normal}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.card h3{font-size:11px;color:var(--mut);text-transform:uppercase;margin-bottom:6px}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;gap:10px}
+.kv span:first-child{color:var(--mut)}
+.kv b{font-weight:500;color:var(--tx)}
+.kv.hi{margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
+.kv.hi b{font-weight:700;color:var(--acc);font-size:15px}
+.calc .kv.step{padding-left:14px;font-size:12px;color:var(--mut);border-left:2px solid var(--line);margin-left:2px}
+.calc .kv.step b{color:var(--mut);font-weight:500}
+.calc .kv.sum{border-top:1px dashed var(--line);margin-top:2px;padding-top:5px}
+.calc .kv.sum b{font-weight:500}
+.calc .kv.sum.total{border-top:1px solid var(--acc);margin-top:6px;padding-top:6px}
+.calc .kv.sum.total b{color:var(--acc);font-weight:700;font-size:15px}
+.ico{cursor:pointer;font-size:15px;padding:2px 5px;border-radius:5px;opacity:.55}
+.ico:hover{opacity:1;background:#232c42}
+.ico.on{opacity:1}
+.ico-cell{white-space:nowrap}
+tr.skryta{opacity:.45}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.btn-row button{flex:1;margin-top:0}
+.btn-off{background:#232c42;color:var(--tx)}
+a{color:var(--acc)}
+.empty{color:var(--mut);padding:40px;text-align:center}
+@media(max-width:800px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
+#landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.landing-wrap{text-align:center}
+.landing-wrap h1{font-size:24px;margin-bottom:8px}
+.landing-wrap .sub{margin-bottom:30px}
+.karty{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+a.karta{width:220px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px 20px;text-decoration:none;color:var(--tx);transition:border-color .15s,transform .15s;display:block}
+a.karta:hover{border-color:var(--acc);transform:translateY(-2px)}
+a.karta .ico{font-size:32px;margin-bottom:10px;display:block}
+a.karta h2{font-size:17px;margin-bottom:8px}
+a.karta .pocty{color:var(--mut);font-size:12px}
+#gen-landing{margin-top:24px;color:var(--mut);font-size:11px}
+</style>
+</head>
+<body>
+<div id="landing" style="display:none">
+  <div class="landing-wrap">
+    <h1>🏠 Ocenění nemovitostí</h1>
+    <div class="sub">tržní hodnota dle tvého modelu · peer group · podhodnocené příležitosti<br>vyber kraj</div>
+    <div class="karty">
+      <a class="karta" href="?kraj=praha"><span class="ico">🏙️</span><h2>Praha</h2><div class="pocty" id="p-praha">načítám…</div></a>
+      <a class="karta" href="?kraj=stredocesky"><span class="ico">🌳</span><h2>Střední Čechy</h2><div class="pocty" id="p-stredocesky">načítám…</div></a>
+    </div>
+    <div id="gen-landing"></div>
+  </div>
+</div>
+<div id="app" style="display:none">
+<header>
+  <h1>🏠 Ocenění nemovitostí <span id="nazev-kraje" style="color:var(--acc)"></span></h1>
+  <div class="sub">tržní hodnota dle tvého modelu · peer group · podhodnocené příležitosti</div>
+  <div class="sub" id="gen"></div>
+  <a href="?" class="sub" style="margin-left:auto">⇄ vybrat jiný kraj</a>
+</header>
+<main>
+<aside>
+  <h2>Čtvrť</h2>
+  <div class="checklist" id="f-ctvrt"></div>
+  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-ctvrt')">vše</button><button type="button" onclick="checklistZadne('f-ctvrt')">žádné</button></div>
+  <h2>Dispozice</h2>
+  <div class="checklist" id="f-disp"></div>
+  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-disp')">vše</button><button type="button" onclick="checklistZadne('f-disp')">žádné</button></div>
+  <h2>Vlastnictví (družstevní)</h2>
+  <select id="f-druzstevni-rezim">
+    <option value="">nerozlišovat</option>
+    <option value="vyloucit">vyloučit družstevní</option>
+    <option value="jen">jen družstevní</option>
+  </select>
+  <h2>Stav (dle Sreality)</h2>
+  <div class="checklist" id="f-stav-sreality"></div>
+  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-stav-sreality')">vše</button><button type="button" onclick="checklistZadne('f-stav-sreality')">žádné</button></div>
+  <h2>Energetický štítek</h2>
+  <div class="checklist" id="f-stitek"></div>
+  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-stitek')">vše</button><button type="button" onclick="checklistZadne('f-stitek')">žádné</button></div>
+  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center;margin-top:6px">
+    <input id="f-jen-vytah" type="checkbox" style="width:auto">jen s výtahem</label>
+  <h2>Cena (mil. Kč)</h2>
+  <div class="row2"><input id="f-cmin" type="number" placeholder="od" step="0.5"><input id="f-cmax" type="number" placeholder="do" step="0.5"></div>
+  <h2>Plocha (m²)</h2>
+  <div class="row2"><input id="f-pmin" type="number" placeholder="od"><input id="f-pmax" type="number" placeholder="do"></div>
+  <h2>Patro</h2>
+  <div class="row2"><input id="f-patro-min" type="number" placeholder="od, např. 1 (bez přízemí)" step="1"><input id="f-patro-max" type="number" placeholder="do" step="1"></div>
+  <h2>Sleva vs. tržní (%)</h2>
+  <div class="row2"><input id="f-sleva" type="number" placeholder="od, např. 10" step="1"><input id="f-sleva-max" type="number" placeholder="do" step="1"></div>
+  <h2>Min. výnos z nájmu (%)</h2>
+  <input id="f-vynos" type="number" placeholder="např. 3" step="0.5">
+  <h2>Bez ceny</h2>
+  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center">
+    <input id="f-bezceny" type="checkbox" style="width:auto">zobrazit „cena na vyžádání"</label>
+  <h2>Watchlist &amp; skryté</h2>
+  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center;margin-bottom:4px">
+    <input id="f-jen-watchlist" type="checkbox" style="width:auto">jen ★ watchlist</label>
+  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center">
+    <input id="f-zobraz-skryte" type="checkbox" style="width:auto">zobrazit skryté</label>
+  <h2>Anuita</h2>
+  <select id="f-anuita-rezim" title="Textová heuristika z popisu inzerátu (typicky se týká družstevních bytů), nemusí být 100% spolehlivá">
+    <option value="">nerozlišovat</option>
+    <option value="vyloucit">vyloučit nesplacenou/nejasnou anuitu</option>
+    <option value="jen">⚠️ jen nesplacená anuita</option>
+  </select>
+  <h2>Postoupení (splátky developerovi)</h2>
+  <select id="f-postoupeni-rezim" title="Textová heuristika z popisu inzerátu — cena bývá jen 1. splátka, ne celková cena">
+    <option value="">nerozlišovat</option>
+    <option value="vyloucit">vyloučit postoupení</option>
+    <option value="jen">⚠️ jen postoupení</option>
+  </select>
+  <button class="btn-p" onclick="render()">Filtrovat</button>
+  <button class="btn-s" onclick="reset()">Zrušit filtry</button>
+</aside>
+<section>
+  <div class="stats" id="stats"></div>
+  <table>
+    <thead><tr>
+      <th onclick="srt('sleva_pct')">Sleva ▾</th><th>Nabídka</th><th>Čtvrť</th><th>Disp.</th>
+      <th onclick="srt('plocha_m2')">m²</th><th onclick="srt('cena_czk')">Cena</th>
+      <th onclick="srt('cena_m2')">Kč/m²</th><th onclick="srt('trzni_hodnota')">Tržní hodnota</th>
+      <th onclick="srt('prosty_vynos_pct')">Výnos</th><th></th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+</section>
+</main>
+</div>
+<script>
+let ALL=[], MAPA={}, view=[], sortKey='sleva_pct', sortAsc=false;
+const fmt=n=>n==null?'–':Math.round(n).toLocaleString('cs-CZ');
+const pct=n=>n==null?'–':n.toLocaleString('cs-CZ',{maximumFractionDigits:1})+' %';
+const pctS=n=>n==null?'–':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' %';
+const mult=n=>n==null?'–':'× '+n.toLocaleString('cs-CZ',{maximumFractionDigits:4});
+
+const REPO='rubikandson/nemovitosti';
+function otevriIssue(id,zmeny){
+  const title='uprava:'+id;
+  const body='```json\n'+JSON.stringify(zmeny,null,2)+'\n```';
+  const url='https://github.com/'+REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
+  window.open(url,'_blank');
+}
+function prepni(ev,id,pole,hodnota){
+  if(ev)ev.stopPropagation();
+  otevriIssue(id,{[pole]:hodnota});
+}
+
+// Praha a Střední Čechy jsou od 2026-08 oddělené (na žádost uživatele):
+// bez ?kraj= parametru se zobrazí výběrová stránka (landing), s parametrem
+// se appka (filtry/tabulka) omezí jen na nabídky daného kraje — jak
+// v datech (ALL, MAPA), tak v checklist filtrech (Čtvrť atd.), protože
+// Praha a Střední Čechy mají úplně jiné čtvrti/obce.
+const KRAJ_PARAM={praha:'Praha', stredocesky:'Středočeský'};
+let AKTIVNI_KRAJ=null;
+async function boot(){
+  const d=await (await fetch('data.json')).json();
+  const krajParam=new URLSearchParams(location.search).get('kraj');
+  AKTIVNI_KRAJ=KRAJ_PARAM[krajParam]||null;
+  if(!AKTIVNI_KRAJ){ukazLanding(d);return;}
+  document.getElementById('landing').style.display='none';
+  document.getElementById('app').style.display='';
+  document.title='Ocenění nemovitostí — '+AKTIVNI_KRAJ;
+  ALL=d.listings.filter(r=>r.kraj===AKTIVNI_KRAJ);
+  d.price_map.filter(p=>p.kraj===AKTIVNI_KRAJ).forEach(p=>MAPA[p.ctvrt]=p);
+  document.getElementById('gen').textContent='data: '+(d.generated||'').replace('T',' ');
+  document.getElementById('nazev-kraje').textContent='— '+AKTIVNI_KRAJ;
+  const cts={}; ALL.forEach(r=>{if(r.ctvrt)cts[r.ctvrt]=(cts[r.ctvrt]||0)+1});
+  renderChecklist('f-ctvrt', Object.keys(cts).sort().map(c=>({hodnota:c,popisek:`${c} (${cts[c]})`})));
+  const ds=[...new Set(ALL.map(r=>r.dispozice).filter(Boolean))].sort();
+  renderChecklist('f-disp', ds.map(d=>({hodnota:d,popisek:d})));
+  const st=[...new Set(ALL.map(r=>r.energeticky_stitek).filter(Boolean))].sort();
+  renderChecklist('f-stitek', st.map(s=>({hodnota:s,popisek:s})));
+  const stavSr=[...new Set(ALL.map(r=>r.stav_sreality).filter(Boolean))].sort();
+  renderChecklist('f-stav-sreality', stavSr.map(s=>({hodnota:s,popisek:s})));
+  nastavDefaultniFiltry();
+  render();
+}
+// Výběrová stránka (Praha / Střední Čechy) s živými počty z data.json.
+function ukazLanding(d){
+  document.getElementById('app').style.display='none';
+  document.getElementById('landing').style.display='';
+  document.getElementById('gen-landing').textContent='data: '+(d.generated||'').replace('T',' ');
+  const shrn=kraj=>{
+    const l=d.listings.filter(r=>r.kraj===kraj);
+    const pril=l.filter(r=>r.sleva_pct!=null&&r.sleva_pct>=10).length;
+    return `${l.length} nabídek · ${pril} příležitostí (sleva ≥ 10 %)`;
+  };
+  document.getElementById('p-praha').textContent=shrn('Praha');
+  document.getElementById('p-stredocesky').textContent=shrn('Středočeský');
+}
+// Výchozí filtry (na žádost uživatele, 2026-07-30): vyloučit družstevní
+// vlastnictví, vyloučit nesplacenou anuitu, vyloučit atypickou dispozici.
+// Platí při prvním načtení appky i po "Zrušit filtry" — je to uživatelův
+// běžný výchozí pohled, ne appka bez jakéhokoli filtru. Kdykoliv jde
+// jednoduše přepnout zpátky (select na "nerozlišovat", zaškrtnout
+// "Atypický").
+function nastavDefaultniFiltry(){
+  document.getElementById('f-druzstevni-rezim').value = 'vyloucit';
+  document.getElementById('f-anuita-rezim').value = 'vyloucit';
+  const atyp = document.querySelector('#f-disp input[value="Atypický"]');
+  if (atyp) atyp.checked = false;
+}
+const num=id=>{const v=document.getElementById(id).value;return v===''?null:+v;};
+// Checklist filtr (na žádost uživatele, místo víceklikacího <select multiple>
+// s odděleným "vyloučit" přepínačem): každá položka má vlastní zaškrtávátko,
+// defaultně VŠE zaškrtnuto (=žádný filtr). Odškrtnutím některých položek se
+// filtruje jen na zaškrtnuté — takže "chci vše kromě X" (odškrtnout jen X) i
+// "chci jen X" (žádné, pak zaškrtnout X) jde stejně snadno.
+function renderChecklist(id, polozky){
+  document.getElementById(id).innerHTML = polozky.map(p=>
+    `<label><input type="checkbox" checked value="${p.hodnota}">${p.popisek}</label>`).join('');
+}
+function checklistVse(id){document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=true);render();}
+function checklistZadne(id){document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=false);render();}
+// Vrátí {vse: true, pokud jsou zaškrtnuté úplně všechny (= žádný filtr);
+// zaskrtnute: pole hodnot zaškrtnutých položek}.
+function checklistStav(id){
+  const inputs=[...document.querySelectorAll('#'+id+' input')];
+  return {vse: inputs.every(i=>i.checked), zaskrtnute: inputs.filter(i=>i.checked).map(i=>i.value)};
+}
+function srt(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=(k==='cena_czk');}render();}
+function reset(){
+  document.querySelectorAll('aside select,aside input').forEach(e=>{if(e.type==='checkbox')e.checked=false;else e.value='';if(e.multiple)[...e.options].forEach(o=>o.selected=false)});
+  document.querySelectorAll('.checklist input').forEach(i=>i.checked=true);
+  nastavDefaultniFiltry();
+  render();
+}
+
+function render(){
+  const ct=checklistStav('f-ctvrt'), dp=checklistStav('f-disp'),
+        st=checklistStav('f-stitek'), stavSr=checklistStav('f-stav-sreality');
+  const cmin=num('f-cmin'), cmax=num('f-cmax'), pmin=num('f-pmin'), pmax=num('f-pmax'),
+        patroMin=num('f-patro-min'), patroMax=num('f-patro-max'),
+        msl=num('f-sleva'), mslMax=num('f-sleva-max'), mvy=num('f-vynos');
+  const bez=document.getElementById('f-bezceny').checked;
+  const jenWatch=document.getElementById('f-jen-watchlist').checked;
+  const zobrSkryte=document.getElementById('f-zobraz-skryte').checked;
+  const druzstevniRezim=document.getElementById('f-druzstevni-rezim').value;
+  const anuitaRezim=document.getElementById('f-anuita-rezim').value;
+  const postoupeniRezim=document.getElementById('f-postoupeni-rezim').value;
+  const jenVytah=document.getElementById('f-jen-vytah').checked;
+  view=ALL.filter(r=>
+    (bez||r.cena_czk!=null) &&
+    (zobrSkryte||!r.skryto) && (!jenWatch||r.watchlist) &&
+    (druzstevniRezim!=='vyloucit'||r.vlastnictvi!=='Družstevní') &&
+    (druzstevniRezim!=='jen'||r.vlastnictvi==='Družstevní') &&
+    (anuitaRezim!=='vyloucit'||(r.anuita_stav!=='nesplacena'&&r.anuita_stav!=='neznamo')) &&
+    (anuitaRezim!=='jen'||r.anuita_stav==='nesplacena') &&
+    (postoupeniRezim!=='vyloucit'||r.postoupeni_stav!=='ano') &&
+    (postoupeniRezim!=='jen'||r.postoupeni_stav==='ano') &&
+    (!jenVytah||r.vytah==='Ano') &&
+    (ct.vse||ct.zaskrtnute.includes(r.ctvrt)) && (dp.vse||dp.zaskrtnute.includes(r.dispozice)) &&
+    (st.vse||st.zaskrtnute.includes(r.energeticky_stitek)) &&
+    (stavSr.vse||stavSr.zaskrtnute.includes(r.stav_sreality)) &&
+    (cmin==null||r.cena_czk>=cmin*1e6) && (cmax==null||r.cena_czk<=cmax*1e6) &&
+    (pmin==null||r.plocha_m2>=pmin) && (pmax==null||r.plocha_m2<=pmax) &&
+    (patroMin==null||(r.patro!=null&&r.patro>=patroMin)) &&
+    (patroMax==null||(r.patro!=null&&r.patro<=patroMax)) &&
+    (msl==null||(r.sleva_pct!=null&&r.sleva_pct>=msl)) &&
+    (mslMax==null||(r.sleva_pct!=null&&r.sleva_pct<=mslMax)) &&
+    (mvy==null||(r.prosty_vynos_pct!=null&&r.prosty_vynos_pct>=mvy)));
+  view.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];
+    if(x==null)return 1; if(y==null)return -1; return sortAsc?x-y:y-x;});
+  const tb=document.getElementById('tb');
+  // Omezení počtu vykreslených řádků (CAP): appka měla u ~4600+ nabídek
+  // tendenci zamrznout po chvíli klikání — každé přefiltrování stavělo
+  // tisíce <tr> najednou. Řazení proběhne nad VŠEMI nabídkami (view),
+  // do DOM se ale posílá jen prvních CAP — souhrny (stats) níže počítají
+  // stále z celého view, takže čísla zůstávají správná.
+  const CAP=400;
+  const zobrazene=view.slice(0,CAP);
+  if(!view.length){tb.innerHTML='<tr><td colspan="10" class="empty">Žádné nabídky — počkej na první běh importu, nebo uvolni filtry.</td></tr>';}
+  else tb.innerHTML=zobrazene.map((r,i)=>{
+    const cls=r.sleva_pct>=15?'sleva-ok':r.sleva_pct>=5?'sleva-mid':'sleva-bad';
+    return `<tr class="l${r.skryto?' skryta':''}" onclick="detail(${i},this)">
+      <td class="${cls}">${pct(r.sleva_pct)}</td>
+      <td>${r.nazev||''}</td><td>${r.ctvrt||''}</td><td>${r.dispozice||''}</td>
+      <td>${r.plocha_m2||''}</td><td>${r.cena_czk==null?'na vyžádání':fmt(r.cena_czk)}</td><td>${fmt(r.cena_m2)}</td>
+      <td>${fmt(r.trzni_hodnota)}</td><td>${pct(r.prosty_vynos_pct)}</td>
+      <td class="ico-cell">
+        <span class="ico${r.watchlist?' on':''}" title="Watchlist" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★':'☆'}</span>
+        <span class="ico${r.skryto?' on':''}" title="Skrýt/zobrazit" onclick="prepni(event,${r.id},'skryto',${r.skryto?0:1})">${r.skryto?'🚫':'👁'}</span>
+      </td></tr>`;
+  }).join('');
+  const se=view.filter(r=>r.sleva_pct!=null);
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  document.getElementById('stats').innerHTML=
+    `<div class="stat"><b>${view.length}</b><span>nabídek${view.length>CAP?` (zobrazeno prvních ${CAP})`:''}</span></div>
+     <div class="stat"><b>${se.filter(r=>r.sleva_pct>=10).length}</b><span>příležitostí (sleva ≥ 10 %)</span></div>
+     <div class="stat"><b>${pct(avg(se.map(r=>r.sleva_pct)))}</b><span>průměrná sleva</span></div>
+     <div class="stat"><b>${fmt(avg(view.filter(r=>r.cena_m2).map(r=>r.cena_m2)))}</b><span>Ø Kč/m² (výběr)</span></div>`;
+}
+
+function detail(i,tr){
+  const old=document.querySelector('.detail'); const was=old&&old.dataset.i==i;
+  if(old)old.remove(); if(was)return;
+  const r=view[i];
+  const peers=ALL.filter(x=>x.ctvrt===r.ctvrt&&x.plocha_m2>0);
+  const cm2=peers.map(x=>x.cena_czk/x.plocha_m2);
+  const pm=MAPA[r.ctvrt];
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const row=document.createElement('tr'); row.className='detail'; row.dataset.i=i;
+  row.innerHTML=`<td colspan="10"><div class="grid">
+    <div class="card calc"><h3>Postup výpočtu tržní hodnoty</h3>
+      ${(r.v_plocha_vedlejsi_m2||r.v_plocha_zahrada_m2)?`
+      <div class="kv step"><span>Užitná plocha (dle Sreality)</span><b>${r.plocha_m2||'–'} m²</b></div>
+      ${r.v_plocha_jadro?`<div class="kv step"><span>jádro bytu (bez terasy/lodžie/balkonu)</span><b>${r.v_plocha_jadro} m²</b></div>`:''}
+      ${r.v_plocha_vedlejsi_m2?`<div class="kv step"><span>+ terasa/lodžie/balkon ${r.v_plocha_vedlejsi_m2} m² × 25 %</span><b>+ ${(r.v_plocha_vedlejsi_m2*0.25).toFixed(1)} m²</b></div>`:''}
+      ${r.v_plocha_zahrada_m2?`<div class="kv step"><span>+ zahrada ${r.v_plocha_zahrada_m2} m² × 15 %</span><b>+ ${(r.v_plocha_zahrada_m2*0.15).toFixed(1)} m²</b></div>`:''}
+      <div class="kv sum"><span>= Efektivní plocha</span><b>${r.v_plocha_efektivni} m²</b></div>`:``}
+      ${r.v_zakladni_rucne?`
+      <div class="kv"><span>Základní cena/m² (ručně zadáno)</span><b>${fmt(r.v_zakladni_cena_m2)} Kč</b></div>`:`
+      <div class="kv"><span>Cena z cenové mapy (${r.ctvrt||'–'})</span><b>${fmt(r.v_cena_mapy_m2)} Kč/m²</b></div>
+      <div class="kv step"><span>faktor velikosti bytu (${r.v_plocha_efektivni||r.plocha_m2||'–'} m²)</span><b>${mult(r.v_faktor_velikosti)}</b></div>
+      <div class="kv sum"><span>= Základní cena/m²</span><b>${fmt(r.v_zakladni_cena_m2)} Kč</b></div>`}
+      <div class="kv step"><span>koef. lokalita</span><b>${pctS(r.v_koef_lokalita_pct)}</b></div>
+      <div class="kv step"><span>koef. stav</span><b>${pctS(r.v_koef_stav_pct)}</b></div>
+      <div class="kv step"><span>koef. věk${r.v_vek_pouzity!=null?' ('+r.v_vek_pouzity+' let)':''}</span><b>${pctS(r.v_koef_vek_pct)}</b></div>
+      <div class="kv step"><span>koef. další (ruční)</span><b>${pctS(r.v_koef_dalsi_pct)}</b></div>
+      <div class="kv sum"><span>= Výsledná cena/m² (koef. celkem ${r.koef_celkem??'–'})</span><b>${fmt(r.vysledna_cena_m2)} Kč</b></div>
+      <div class="kv step"><span>× plocha (efektivní)</span><b>× ${r.v_plocha_efektivni||r.plocha_m2||'–'} m²</b></div>
+      <div class="kv sum"><span>= Cena za byt</span><b>${fmt(r.cena_za_byt)} Kč</b></div>
+      <div class="kv step"><span>+ příplatek (parkování: ${r.parkovani||'Ne'}${r.v_typ_parkovani?' — '+r.v_typ_parkovani:''}${r.v_koef_lokalita_parkovani?', koef. lokalita ×'+r.v_koef_lokalita_parkovani:''})</span><b>+ ${fmt(r.priplatky_czk)} Kč</b></div>
+      <div class="kv sum total"><span>= Tržní hodnota</span><b>${fmt(r.trzni_hodnota)} Kč</b></div>
+      <div class="kv"><span>Inzerovaná cena</span><b>${r.cena_czk==null?'na vyžádání':fmt(r.cena_czk)+' Kč'}</b></div>
+      <div class="kv hi"><span>Rozdíl (sleva vs. tržní)</span><b>${pct(r.sleva_pct)}</b></div></div>
+    <div class="card"><h3>Peer group — ${r.ctvrt||'–'}</h3>
+      <div class="kv"><span>Nabídek ve čtvrti</span><b>${peers.length}</b></div>
+      <div class="kv"><span>Ø Kč/m² nabídky</span><b>${fmt(avg(cm2))}</b></div>
+      <div class="kv"><span>Rozpětí Kč/m²</span><b>${cm2.length?fmt(Math.min(...cm2))+'–'+fmt(Math.max(...cm2)):'–'}</b></div>
+      <div class="kv"><span>Cenová mapa Kč/m²</span><b>${pm?fmt(pm.cena_za_m2_czk):'–'}</b></div>
+      <div class="kv"><span>Transakcí v mapě</span><b>${pm?pm.pocet_transakci:'–'}</b></div></div>
+    <div class="card"><h3>Watchlist &amp; skrytí</h3>
+      <div class="kv"><span>Watchlist</span><b>${r.watchlist?'ano':'ne'}</b></div>
+      <div class="kv"><span>Skryto z hlavního výpisu</span><b>${r.skryto?'ano':'ne'}</b></div>
+      <div class="btn-row">
+        <button class="btn-s" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★ odebrat z watchlistu':'☆ přidat na watchlist'}</button>
+        <button class="btn-s" onclick="prepni(event,${r.id},'skryto',${r.skryto?0:1})">${r.skryto?'👁 zobrazit zpět':'🚫 skrýt'}</button>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:6px">I tohle jde přes GitHub Issue (Submit new issue → zapíše se do ~2 minut).</div></div>
+    <div class="card"><h3>Nájem &amp; výnos</h3>
+      <div class="kv"><span>Roční nájem (10/12)</span><b>${fmt(r.najem_rocni)} Kč</b></div>
+      <div class="kv"><span>Prostý výnos</span><b>${pct(r.prosty_vynos_pct)}</b></div>
+      <div class="kv hi"><span>Celkový výnos 20 let (IRR)</span><b>${pct(r.celkovy_vynos_pct)}</b></div></div>
+    <div class="card"><h3>Hypotéka (LTV 80 %, 4,2 %, 30 let)</h3>
+      <div class="kv"><span>Měsíční splátka</span><b>${fmt(r.splatka_mesicni)} Kč</b></div>
+      <div class="kv"><span>Měsíční nájem</span><b>${fmt(r.najem_mesicni)} Kč</b></div>
+      <div class="kv hi"><span>Pokrytí splátky nájmem</span><b>${pct(r.pokryti_splatky_pct)}</b></div></div>
+    <div class="card"><h3>Vstupy</h3>
+      <div class="kv"><span>Stav (pro výpočet)</span><b>${r.stav||'–'}</b></div>
+      ${r.stav_sreality?`<div class="kv"><span>Stav (dle Sreality)</span><b>${r.stav_sreality}</b></div>`:''}
+      <div class="kv"><span>Rok výstavby</span><b>${r.rok_vystavby||'–'}</b></div>
+      <div class="kv"><span>Balkon / parkování</span><b>${r.balkon||'–'} / ${r.parkovani||'–'}${r.typ_parkovani?' ('+r.typ_parkovani+')':''}</b></div>
+      ${r.terasa_m2?`<div class="kv"><span>Terasa</span><b>${r.terasa_m2} m²</b></div>`:''}
+      ${r.lodzie_m2?`<div class="kv"><span>Lodžie</span><b>${r.lodzie_m2} m²</b></div>`:''}
+      ${r.balkon_m2?`<div class="kv"><span>Balkon (plocha)</span><b>${r.balkon_m2} m²</b></div>`:''}
+      <div class="kv"><span>Patro</span><b>${r.patro!=null?r.patro+(r.pater_celkem!=null?' / '+r.pater_celkem:''):'–'}</b></div>
+      <div class="kv"><span>Výtah</span><b>${r.vytah||'–'}</b></div>
+      <div class="kv"><span>Sklep</span><b>${r.sklep?('ano'+(r.sklep_m2?', '+r.sklep_m2+' m²':'')):(r.sklep===0?'ne':'–')}</b></div>
+      ${r.zahrada_m2?`<div class="kv"><span>Zahrada</span><b>${r.zahrada_m2} m²</b></div>`:''}
+      <div class="kv"><span>Typ stavby</span><b>${r.typ_stavby||'–'}</b></div>
+      <div class="kv"><span>Energetický štítek</span><b>${r.energeticky_stitek||'–'}</b></div>
+      ${r.datum_vlozeni?`<div class="kv"><span>Datum vložení</span><b>${r.datum_vlozeni}</b></div>`:''}
+      <div class="kv"><span>Vlastnictví</span><b>${r.vlastnictvi||'–'}</b></div>
+      ${r.vlastnictvi==='Družstevní'?`<div class="kv"><span>Anuita</span><b${r.anuita_stav==='nesplacena'?' style="color:var(--bad)"':''}>${
+        {nesplacena:'⚠️ nesplacená (viz popis inzerátu)', splacena:'splacená', neznamo:'zmíněna, stav nejasný z textu'}[r.anuita_stav] || 'v popisu neuvedeno'
+      }</b></div>`:''}
+      ${r.postoupeni_stav==='ano'?`<div class="kv"><span>⚠️ Postoupení</span><b style="color:var(--bad)">cena může být jen 1. splátka, ne celková cena — ověř popis</b></div>`:''}
+      <div class="kv"><span>Lokalita (skóre ${r.lokalita_skore??'–'})</span><b>${(r.lokalita||r.lokalita_auto||'–').split(',')[0]}</b></div>
+      ${r.lokalita_detail?`<div class="kv" style="font-size:11px;color:var(--mut)">${r.lokalita_detail}</div>`:''}
+      <div class="kv"><span>Zdroj</span><b>${r.source||'–'}</b></div>
+      ${r.url?`<div class="kv"><span>Odkaz</span><a href="${r.url}" target="_blank">otevřít inzerát</a></div>`:''}</div>
+    <div class="card"><h3>✏️ Upravit vstupy</h3>
+      <div class="kv"><span>Stav</span><select id="e-stav" style="width:60%">
+        <option value="">(automaticky)</option>
+        <option>Žádná / běžná údržba/Novostavba</option>
+        <option>Částečná rekonstrukce (kuchyň/koupelna ≤10 let)</option>
+        <option>Generální rekonstrukce (≤10 let)</option></select></div>
+      <div class="kv"><span>Rok výstavby</span><input id="e-rok" type="number" style="width:60%" value="${r.rok_vystavby??''}"></div>
+      <div class="kv"><span>Balkon</span><select id="e-balkon" style="width:60%">
+        <option value="">(automaticky)</option><option>Ano</option><option>Ne</option></select></div>
+      <div class="kv"><span>Parkování</span><select id="e-park" style="width:60%">
+        <option value="">(automaticky)</option><option>Ano</option><option>Ano 2*</option><option>Ne</option></select></div>
+      <div class="kv"><span>Lokalita</span><select id="e-lok" style="width:60%">
+        <option value="">(automaticky z matice)</option>
+        <option>u MHD / metro, u obchodu a služeb, tiché místo, parky v docházce</option>
+        <option>standardní dostupnost, běžná občanská vybavenost, žádné extrémy</option>
+        <option>daleko od MHD/služeb, hluk / bariéry (rušná silnice, železnice), horší pěší dostupnost</option></select></div>
+      <div class="kv"><span>Další koef (%)</span><input id="e-koef" type="number" step="0.5" style="width:60%" value="${r.dalsi_koef_pct||''}"></div>
+      <div class="kv"><span>Nájemné Kč/m²/měs</span><input id="e-najem" type="number" style="width:60%" value="${r.najem_m2_mesic||''}"></div>
+      <div class="kv"><span>Zákl. cena/m² (Kč)</span><input id="e-zakl" type="number" style="width:60%" value="${r.zakladni_cena_m2||''}"></div>
+      <button class="btn-p" style="margin-top:8px" onclick="ulozUpravu(${r.id})">💾 Uložit (přes GitHub)</button>
+      <div style="font-size:11px;color:var(--mut);margin-top:6px">Otevře se GitHub s předvyplněnou změnou — klikni „Submit new issue".
+      Robot ji do ~2 minut zapíše a přepočítá. Prázdné pole = automatická hodnota.</div></div>
+  </div></td>`;
+  tr.after(row);
+  // Předvyplnit selecty aktuální hodnotou nabídky (jinak by "Uložit" bez
+  // úprav poslal prázdno = smazal by existující ruční vstupy).
+  ['e-stav','e-balkon','e-park','e-lok'].forEach(id=>{
+    const pole={'e-stav':'stav','e-balkon':'balkon','e-park':'parkovani','e-lok':'lokalita'}[id];
+    const el=row.querySelector('#'+id);
+    if(el&&r[pole])el.value=r[pole];
+  });
+}
+// Sesbírá hodnoty z formuláře "Upravit vstupy" a otevře GitHub Issue.
+// Prázdné pole = vrátit na automatiku (viz scripts/aplikuj_upravu.py).
+function ulozUpravu(id){
+  const zmeny={
+    stav: document.getElementById('e-stav').value,
+    rok_vystavby: document.getElementById('e-rok').value,
+    balkon: document.getElementById('e-balkon').value,
+    parkovani: document.getElementById('e-park').value,
+    lokalita: document.getElementById('e-lok').value,
+    dalsi_koef_pct: document.getElementById('e-koef').value,
+    najem_m2_mesic: document.getElementById('e-najem').value,
+    zakladni_cena_m2: document.getElementById('e-zakl').value,
+  };
+  otevriIssue(id,zmeny);
+}
+boot();
+</script>
+</body>
+</html>

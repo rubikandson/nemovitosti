@@ -1,0 +1,45 @@
+name: Měsíční přehled
+
+# Deterministická náhrada Cowork úlohy `oceneni-prehled-refresh` pro svět bez
+# Claude. Běží 2. den v měsíci, vygeneruje docs/monthly_overview.md z
+# docs/data.json + data/sazba_hypoteky.csv a commitne ho. ChatGPT Task pak
+# jen stáhne ten malý soubor (viz docs/HANDOFF_GPT.md).
+
+on:
+  schedule:
+    - cron: "0 9 2 * *"   # 2. den v měsíci 09:00 UTC (den po měsíčním refreshi cenové mapy)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monthly-overview
+  cancel-in-progress: false
+
+jobs:
+  monthly-overview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vygeneruj měsíční přehled
+        run: python scripts/monthly_overview.py
+
+      - name: Commit přehledu (jen když se změnil)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain docs/monthly_overview.md)" ]; then
+            git add docs/monthly_overview.md
+            git commit -m "Měsíční přehled ($(date -u +%Y-%m))"
+            git push
+          else
+            echo "Přehled se nezměnil, nic necommituju."
+          fi
