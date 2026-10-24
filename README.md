@@ -22,9 +22,16 @@ Appka pak žije na `https://rubikandson.github.io/nemovitosti/`
 a data se obnovují každý den ve 4:00 UTC automaticky.
 
 ## Co appka umí
-Filtry (čtvrť, dispozice, cena, plocha, min. sleva, min. výnos), řazení kliknutím
-na hlavičku, klik na řádek = detail: rozpad ocenění, peer group čtvrti (Ø Kč/m²
-nabídek vs. cenová mapa), nájem/IRR, hypotéka.
+Karty bytů s fotkou, celkovou cenou a odhadem tržní hodnoty. Nahoře rychlé
+filtry (čtvrť, počet pokojů, cena, „jen výhodné“, řazení), zbytek pod
+„Další filtry“. Klik na kartu = detail: cena vs. odhad, srovnání se čtvrtí,
+nájem a hypotéka, postup výpočtu, oprava vstupů.
+
+**Zálohy a doplatky:** u družstevních novostaveb Sreality uvádí jako cenu jen
+převod podílu; doplatek (anuitu) appka dohledá v poznámce k ceně / popisu
+a počítá s celkovou cenou. Když doplatek v textu je, ale bez částky, nabídka
+je označená „cena neúplná“ a ve výchozím pohledu se nezobrazuje
+(`src/sreality_detail.py`, `_doplatek`).
 
 ## Lokální běh (volitelné)
 ```

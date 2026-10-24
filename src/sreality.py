@@ -204,6 +204,17 @@ def _cena(r) -> float | None:
     return None
 
 
+def _foto(e):
+    """URL první fotky inzerátu. CDN Sreality ji vydá jen s parametrem
+    velikosti (povolené jsou jen některé, např. 400×300 a 749×562) —
+    ten si doplňuje appka (src/static/index.html, foto())."""
+    fotky = e.get("advert_images") or []
+    if not fotky:
+        return None
+    url = fotky[0]
+    return "https:" + url if url.startswith("//") else url
+
+
 def import_sreality(url: str, max_pages: int = 5) -> int:
     params = _params_from_url(url)
     region_id = params.get("locality_region_id")
@@ -242,6 +253,7 @@ def import_sreality(url: str, max_pages: int = 5) -> int:
                 "plocha_m2": _plocha(nazev),
                 "cena_czk": cena,
                 "kraj": kraj,
+                "foto_url": _foto(e),
                 # stav/rok/balkon/parkování doplní import-detaily
                 "lokalita_auto": kat,
                 "lokalita_skore": skore,

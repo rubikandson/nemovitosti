@@ -22,14 +22,15 @@ def dump_data() -> dict:
                   v.v_zakladni_rucne, v.v_koef_lokalita_pct, v.v_koef_stav_pct,
                   v.v_koef_vek_pct, v.v_koef_dalsi_pct, v.v_vek_pouzity,
                   v.v_plocha_jadro, v.v_plocha_vedlejsi_m2, v.v_plocha_zahrada_m2,
-                  v.v_plocha_efektivni, v.v_typ_parkovani, v.v_koef_lokalita_parkovani
+                  v.v_plocha_efektivni, v.v_typ_parkovani, v.v_koef_lokalita_parkovani, v.v_cena_celkova
            FROM listings l LEFT JOIN valuations v ON v.listing_id = l.id
            WHERE l.active = 1""")]
     price_map = [dict(r) for r in con.execute("SELECT * FROM price_map")]
     con.close()
     for r in listings:
-        r["cena_m2"] = round(r["cena_czk"] / r["plocha_m2"]) \
-            if (r.get("plocha_m2") and r.get("cena_czk")) else None
+        celkova = r.get("v_cena_celkova") or r.get("cena_czk")
+        r["cena_m2"] = round(celkova / r["plocha_m2"]) \
+            if (r.get("plocha_m2") and celkova) else None
     return {"generated": datetime.now().isoformat(timespec="seconds"),
             "listings": listings, "price_map": price_map}
 

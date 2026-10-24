@@ -263,8 +263,81 @@ def _postoupeni_stav(popis: str):
     return "ano" if re.search(r"postoupen", popis, re.I) else None
 
 
+# Doplatek k inzerované ceně (2026-10-24, na žádost uživatele): u družstevních
+# novostaveb Sreality v poli ceny uvádí jen převodní cenu podílu (de facto
+# zálohu), zbytek (anuita / doplatek družstvu) je v `price_note`, v poli
+# `annuity` nebo jen ve volném textu popisu. Pořadí zdrojů (ověřeno na 40
+# nabídkách s nejvyšší „slevou“):
+#   1. „celková cena … X Kč“ v poznámce/popisu → doplatek = X − cena
+#   2. první částka ≥ MIN_DOPLATEK za slovem anuita/doplatek/zbývá
+#      v poznámce k ceně (částky za slovem „splátka“ se přeskakují — to
+#      jsou měsíční splátky)
+#   3. pole `annuity`, když je to částka v řádu statisíců+ (menší čísla jsou
+#      měsíční splátka, viz MIN_DOPLATEK; pole občas nesedí s poznámkou)
+#   4. totéž jako 2., ale v popisu inzerátu
+# Když text o doplatku/záloze mluví, ale žádnou částku nenajdeme, nabídka
+# dostane cena_neuplna=1 a appka ji ve výchozím pohledu nepočítá mezi
+# příležitosti.
+MIN_DOPLATEK = 150_000
+_CASTKA = r"(\d{1,3}(?:[ .\u00a0]\d{3})+|\d{6,9})"
+_CELKOVA = re.compile(r"celkov\w*\s+cen\w*[^0-9\n]{0,60}?" + _CASTKA, re.I)
+_DOPLATEK = re.compile(
+    r"(?:anuit\w*|doplat\w*|doplác\w*|zbýv\w*|nesplacen\w*)(?![^\n]{0,25}splát)[^0-9\n]{0,60}?" + _CASTKA, re.I)
+_NEUPLNA = re.compile(
+    r"nesplacen\w*|neuhrazen\w*|zbýv\w* (?:doplatit|splatit|uhradit)|k doplacení|doplatek|"
+    r"rezervační (?:poplat|zálo)|prvn\w* splátk|postoupen", re.I)
+_SPLACENO = re.compile(
+    r"(?:splacen|doplacen|uhrazen|vypořádán)\w*\s+anuit|anuit\w*\s+(?:je\s+|byla\s+)?(?:plně\s+|již\s+|zcela\s+)?"
+    r"(?:splacen|doplacen|uhrazen|vypořádán)", re.I)
+
+
+def _castka(txt: str) -> float:
+    return float(re.sub(r"[ .\u00a0]", "", txt))
+
+
+def _doplatek(d) -> tuple[float | None, int]:
+    """Vrátí (doplatek_czk, cena_neuplna) pro detail inzerátu."""
+    cena = d.get("price_czk") or 0
+    if not cena:
+        return None, 0
+    poznamka = d.get("price_note") or ""
+    popis = d.get("advert_description") or ""
+    for txt in (poznamka, popis):
+        for m in _CELKOVA.finditer(txt):
+            celkova = _castka(m.group(1))
+            if cena * 1.2 < celkova <= cena * 15:
+                return round(celkova - cena), 0
+    druzstevni = _nazev(d.get("ownership")) == "Družstevní"
+
+    def z_textu(txt):
+        for m in _DOPLATEK.finditer(txt):
+            # u osobního vlastnictví bere jen výslovnou anuitu — „doplatek“
+            # tam bývá třeba za kuchyň nebo garáž, ne zbytek ceny bytu
+            if not druzstevni and not m.group(0).lower().startswith("anuit"):
+                continue
+            if "původn" in txt[max(0, m.start() - 20):m.end()].lower():
+                continue  # „původní anuita X, zbývá Y“ — chceme Y
+            castka = _castka(m.group(1))
+            if MIN_DOPLATEK <= castka <= cena * 15 and castka != cena:
+                return castka
+        return None
+    if (castka := z_textu(poznamka)) is not None:
+        return castka, 0
+    anuita = d.get("annuity")
+    if isinstance(anuita, (int, float)) and anuita >= MIN_DOPLATEK:
+        return float(anuita), 0
+    if (castka := z_textu(popis)) is not None:
+        return castka, 0
+    if _SPLACENO.search(poznamka) or _SPLACENO.search(popis):
+        return None, 0
+    neuplna = bool(_NEUPLNA.search(poznamka)) or (
+        druzstevni and bool(_NEUPLNA.search(popis)))
+    return None, int(neuplna)
+
+
 def import_detaily(limit: int = 500) -> int:
     con = db.connect()
+    db.migruj(con)
     try:
         con.execute("ALTER TABLE listings ADD COLUMN detail_at TEXT")
     except sqlite3.OperationalError:
@@ -283,7 +356,8 @@ def import_detaily(limit: int = 500) -> int:
     radky = con.execute(
         "SELECT l.id, l.external_id FROM listings l "
         "LEFT JOIN valuations v ON v.listing_id = l.id "
-        "WHERE l.source='sreality' AND l.active=1 AND l.detail_at IS NULL "
+        "WHERE l.source='sreality' AND l.active=1 "
+        "AND (l.detail_at IS NULL OR l.cena_kontrola_at IS NULL) "
         "ORDER BY CASE WHEN v.listing_id IS NULL THEN 999999 "
         "ELSE COALESCE(v.sleva_pct, -1000) END DESC "
         "LIMIT ?", (limit,)).fetchall()
@@ -293,6 +367,11 @@ def import_detaily(limit: int = 500) -> int:
             resp = requests.get(API.format(r["external_id"]), headers=HEADERS, timeout=30)
             resp.raise_for_status()
             d = resp.json().get("result", {})
+            doplatek, neuplna = _doplatek(d)
+            con.execute(
+                "UPDATE listings SET doplatek_czk=?, cena_neuplna=?, "
+                "cena_kontrola_at=datetime('now') WHERE id=?",
+                (doplatek, neuplna, r["id"]))
             con.execute(
                 "UPDATE listings SET stav=?, rok_vystavby=?, balkon=?, parkovani=?, "
                 "vlastnictvi=?, anuita_stav=?, energeticky_stitek=?, patro=?, "

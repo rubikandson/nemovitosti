@@ -46,7 +46,7 @@ jobs:
         continue-on-error: true
 
       - name: Dotažení detailů nabídek (stav, rok, balkon, parkování)
-        run: python -m src.main import-detaily --limit 500 2>&1 | tail -5 | tee docs/detail_log.txt
+        run: python -m src.main import-detaily --limit 8000 2>&1 | tail -5 | tee docs/detail_log.txt
         continue-on-error: true
 
       - name: Dohledání typu parkování (garáž/stání/venkovní) u starších nabídek

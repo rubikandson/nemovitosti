@@ -204,6 +204,10 @@ def ocenit_nabidku(l, mapa, najemne_mfcr=None, prumer_cena_m2_kraj=None):
     plocha_uzitna, cena = l.get("plocha_m2"), l.get("cena_czk")
     if not plocha_uzitna or not cena:
         return None
+    # Celková cena = inzerovaná cena + doplatek (anuita u družstevních
+    # novostaveb, 2026-10-24) — jinak by převodní cena podílu vypadala jako
+    # obrovská sleva. Doplatek dohledává sreality_detail._doplatek().
+    cena = cena + float(l.get("doplatek_czk") or 0)
 
     # Efektivní plocha (schváleno 2026-07-27): jádro bytu + terasa/lodžie/
     # balkon a zahrada se sníženou váhou — viz VAHA_TERASA_LODZIE_BALKON.
@@ -274,6 +278,7 @@ def ocenit_nabidku(l, mapa, najemne_mfcr=None, prumer_cena_m2_kraj=None):
         # Rozpad výpočtu pro zobrazení v appce (krok za krokem) — doplněno
         # 2026-07-10 na žádost uživatele („chci vidět cenu, koeficienty za
         # sebou, výsledek"), nic nepočítá jinak, jen ukládá mezivýsledky.
+        "v_cena_celkova": round(cena),
         "v_cena_mapy_m2": round(cena_mapy) if cena_mapy is not None else None,
         "v_faktor_velikosti": round(velikost_faktor, 4),
         "v_zakladni_cena_m2": round(zakladni),

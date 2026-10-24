@@ -77,7 +77,9 @@ Základní cena/m2: ručně ze Sreality cenové mapy, jinak z `data/price_map.cs
 (~100 pražských čtvrtí, zdroj: sreality.cz/cenova-mapa — Atlas cen prodaných
 bytů, 12měsíční klouzavý průměr; automaticky aktualizováno 1× měsíčně,
 schváleno uživatelem 2026-07-10) × faktor velikosti bytu (40/57/75 m²).
-Sleva = −(cena/tržní − 1). Příležitost = sleva ≥ práh (výchozí 10 %).
+Sleva = −(cena/tržní − 1), kde cena = inzerovaná cena + doplatek_czk
+(anuita u družstevních novostaveb, dohledaná z poznámky k ceně/popisu —
+`sreality_detail._doplatek`, schváleno uživatelem 2026-10-24). Příležitost = sleva ≥ práh (výchozí 10 %).
 Navíc: nájemní výnos (obsazenost 10/12, růst 5 %, amortizace 0,3), IRR 20 let,
 hypotéka (LTV 80 %, sazba dle `data/sazba_hypoteky.csv` — automaticky
 aktualizováno 1× měsíčně z ČBA Hypomonitoru, záložní hodnota 4,2 % když

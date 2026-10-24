@@ -11,7 +11,7 @@ LISTING_SLOUPCE = [
     "source", "external_id", "url", "nazev", "dispozice", "ctvrt", "plocha_m2",
     "cena_czk", "zakladni_cena_m2", "lokalita", "stav", "rok_vystavby",
     "balkon", "parkovani", "dalsi_koef_pct", "najem_m2_mesic", "najem_priplatky_rocni",
-    "lokalita_auto", "lokalita_skore", "lokalita_detail", "kraj",
+    "lokalita_auto", "lokalita_skore", "lokalita_detail", "kraj", "foto_url",
 ]
 
 
@@ -119,7 +119,18 @@ def migruj(con):
                 # vlastní pole nemá) — viz src/sreality_detail.py, _typ_parkovani().
                 # Střední Čechy zůstávají beze změny (PARKOVANI_KC), dokud
                 # uživatel neschválí totéž rozlišení i pro ten kraj.
-                "ALTER TABLE listings ADD COLUMN typ_parkovani TEXT"):
+                "ALTER TABLE listings ADD COLUMN typ_parkovani TEXT",
+                # Doplatek k inzerované ceně (2026-10-24, na žádost uživatele):
+                # u družstevních novostaveb Sreality uvádí jako cenu jen převodní
+                # cenu podílu („zálohu“), zbytek (anuita/doplatek) je v poznámce
+                # k ceně nebo v popisu. doplatek_czk = dohledaná částka,
+                # cena_neuplna = 1, když text o doplatku/záloze mluví, ale
+                # částku z něj nejde spolehlivě vyčíst. Viz sreality_detail.py.
+                "ALTER TABLE listings ADD COLUMN doplatek_czk REAL",
+                "ALTER TABLE listings ADD COLUMN cena_neuplna INTEGER",
+                "ALTER TABLE listings ADD COLUMN cena_kontrola_at TEXT",
+                "ALTER TABLE listings ADD COLUMN foto_url TEXT",
+                "ALTER TABLE valuations ADD COLUMN v_cena_celkova REAL"):
         try:
             con.execute(sql)
         except sqlite3.OperationalError:
@@ -209,7 +220,7 @@ def load_price_map():
 # Ostatní (stav, rok, balkon, parkování, nájemné…) se při UPDATE zachovají,
 # pokud nová hodnota chybí — jinak by denní import mazal dotažené detaily.
 PREPSAT_VZDY = {"url", "nazev", "dispozice", "ctvrt", "plocha_m2", "cena_czk",
-                "lokalita_auto", "lokalita_skore", "lokalita_detail"}
+                "lokalita_auto", "lokalita_skore", "lokalita_detail", "foto_url"}
 
 
 def upsert_listing(con, d):
