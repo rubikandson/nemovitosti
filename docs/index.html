@@ -4,456 +4,558 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ocenění nemovitostí</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f1420;--panel:#171e2e;--line:#252f45;--tx:#e8ecf4;--mut:#8b96ad;--acc:#4f8ef7;--ok:#3ecf8e;--warn:#f7b84f;--bad:#f76f6f}
-*{box-sizing:border-box;margin:0}
-body{background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,Segoe UI,sans-serif}
-header{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-header h1{font-size:17px}
-header .sub{color:var(--mut);font-size:12px}
-main{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 60px)}
-aside{padding:18px;border-right:1px solid var(--line);background:var(--panel)}
-aside h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 6px}
-aside h2:first-child{margin-top:0}
-select,input{width:100%;background:#0d1220;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:7px 9px;font-size:13px}
-select[multiple]{height:130px}
-.checklist{max-height:130px;overflow-y:auto;background:#0d1220;border:1px solid var(--line);border-radius:6px;padding:4px 9px}
-.checklist label{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:13px;cursor:pointer}
-.checklist input{width:auto}
-.checklist-actions{display:flex;gap:8px;margin-top:4px}
-.checklist-actions button{flex:1;background:#232c42;color:var(--tx);font-size:11px;padding:5px}
-.row2{display:flex;gap:8px}
-button{cursor:pointer;border:0;border-radius:6px;padding:9px 12px;font-size:13px;font-weight:600}
-.btn-p{background:var(--acc);color:#fff;width:100%;margin-top:14px}
-.btn-s{background:#232c42;color:var(--tx);width:100%;margin-top:8px}
-section{padding:18px 22px;overflow:auto}
-.stats{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
-.stat b{font-size:18px}
-.stat span{display:block;color:var(--mut);font-size:11px}
-table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap}
-td{padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-tr.l:hover{background:#1c2438;cursor:pointer}
-.sleva-ok{color:var(--ok);font-weight:700}.sleva-mid{color:var(--warn);font-weight:600}.sleva-bad{color:var(--bad)}
-.detail{background:#121829}
-.detail td{padding:14px 16px;white-space:normal}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;align-items:start}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.card h3{font-size:11px;color:var(--mut);text-transform:uppercase;margin-bottom:6px}
-.kv{display:flex;justify-content:space-between;font-size:13px;padding:2px 0;gap:10px}
-.kv span:first-child{color:var(--mut)}
-.kv b{font-weight:500;color:var(--tx)}
-.kv.hi{margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
-.kv.hi b{font-weight:700;color:var(--acc);font-size:15px}
-.calc .kv.step{padding-left:14px;font-size:12px;color:var(--mut);border-left:2px solid var(--line);margin-left:2px}
-.calc .kv.step b{color:var(--mut);font-weight:500}
-.calc .kv.sum{border-top:1px dashed var(--line);margin-top:2px;padding-top:5px}
-.calc .kv.sum b{font-weight:500}
-.calc .kv.sum.total{border-top:1px solid var(--acc);margin-top:6px;padding-top:6px}
-.calc .kv.sum.total b{color:var(--acc);font-weight:700;font-size:15px}
-.ico{cursor:pointer;font-size:15px;padding:2px 5px;border-radius:5px;opacity:.55}
-.ico:hover{opacity:1;background:#232c42}
-.ico.on{opacity:1}
-.ico-cell{white-space:nowrap}
-tr.skryta{opacity:.45}
-.btn-row{display:flex;gap:8px;margin-top:8px}
-.btn-row button{flex:1;margin-top:0}
-.btn-off{background:#232c42;color:var(--tx)}
-a{color:var(--acc)}
-.empty{color:var(--mut);padding:40px;text-align:center}
-@media(max-width:800px){main{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid var(--line)}}
-#landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.landing-wrap{text-align:center}
-.landing-wrap h1{font-size:24px;margin-bottom:8px}
-.landing-wrap .sub{margin-bottom:30px}
-.karty{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
-a.karta{width:220px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px 20px;text-decoration:none;color:var(--tx);transition:border-color .15s,transform .15s;display:block}
-a.karta:hover{border-color:var(--acc);transform:translateY(-2px)}
-a.karta .ico{font-size:32px;margin-bottom:10px;display:block}
-a.karta h2{font-size:17px;margin-bottom:8px}
-a.karta .pocty{color:var(--mut);font-size:12px}
-#gen-landing{margin-top:24px;color:var(--mut);font-size:11px}
+:root{
+  --bg:#f5f6f8;--card:#fff;--line:#e4e7ec;--line2:#eef0f3;--tx:#101828;--mut:#667085;--mut2:#98a2b3;
+  --acc:#2563eb;--acc-bg:#eff4ff;--ok:#067647;--ok-bg:#ecfdf3;--warn:#b54708;--warn-bg:#fffaeb;--bad:#b42318;--bad-bg:#fef3f2;
+  --shadow:0 1px 2px rgba(16,24,40,.05);--shadow-lg:0 12px 32px rgba(16,24,40,.14);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0c111d;--card:#161b26;--line:#2a3140;--line2:#1f2633;--tx:#f5f5f6;--mut:#94969c;--mut2:#61646c;
+  --acc:#5b8def;--acc-bg:#172340;--ok:#47cd89;--ok-bg:#0f2a1d;--warn:#fdb022;--warn-bg:#2b2112;--bad:#f97066;--bad-bg:#2d1513;
+  --shadow:none;--shadow-lg:0 12px 32px rgba(0,0,0,.5);
+}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--acc);text-decoration:none}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- úvodní stránka ---------- */
+#landing{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.land{max-width:640px;width:100%;text-align:center}
+.land h1{font-size:28px;font-weight:700;letter-spacing:-.02em}
+.land p{color:var(--mut);margin:8px 0 28px}
+.land-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.land-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:left;color:var(--tx);box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
+.land-card:hover{border-color:var(--acc);transform:translateY(-2px)}
+.land-card h2{font-size:18px;margin-bottom:12px}
+.land-card .big{font-size:26px;font-weight:700;color:var(--ok)}
+.land-card .lbl{color:var(--mut);font-size:13px}
+.land-card .row{margin-top:8px;color:var(--mut);font-size:13px}
+.land-foot{margin-top:20px;color:var(--mut2);font-size:12px}
+@media(max-width:560px){.land-cards{grid-template-columns:1fr}}
+
+/* ---------- hlavička ---------- */
+header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{max-width:1280px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:16px;color:var(--tx);white-space:nowrap}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg a{padding:5px 12px;border-radius:7px;color:var(--mut);font-weight:500;font-size:13px}
+.seg a.on{background:var(--card);color:var(--tx);box-shadow:var(--shadow)}
+.bar .gen{margin-left:auto;color:var(--mut2);font-size:12px}
+
+/* ---------- filtry ---------- */
+.filters{max-width:1280px;margin:0 auto;padding:10px 20px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{position:relative;flex:1 1 220px;max-width:300px}
+.search input{padding-left:32px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--mut2)}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap}
+.chip:hover{border-color:var(--mut2)}
+.chip.on{background:var(--acc-bg);border-color:var(--acc);color:var(--acc)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.sel{width:auto;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:500}
+.more{display:inline-flex;align-items:center;gap:6px}
+.badge-n{background:var(--acc);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;line-height:18px}
+
+/* ---------- souhrn ---------- */
+main{max-width:1280px;margin:0 auto;padding:16px 20px 60px}
+.summary{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.summary h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.summary .s{color:var(--mut)}
+.summary .reset{margin-left:auto;color:var(--acc);font-weight:500;font-size:13px}
+
+/* ---------- karty nabídek ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.card.skryta{opacity:.5}
+.ph{position:relative;aspect-ratio:4/3;background:var(--line2)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut2);font-size:13px}
+.verdict{position:absolute;left:10px;top:10px;border-radius:8px;padding:4px 9px;font-weight:700;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.v-ok{background:var(--ok-bg);color:var(--ok)}
+.v-mid{background:var(--card);color:var(--tx)}
+.v-bad{background:var(--bad-bg);color:var(--bad)}
+.v-warn{background:var(--warn-bg);color:var(--warn)}
+.star{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);color:#344054;font-size:17px;display:flex;align-items:center;justify-content:center}
+.star.on{color:#f79009}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.price{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.est{color:var(--mut);font-size:13px}
+.est b{color:var(--tx);font-weight:600}
+.meta{font-size:13px;color:var(--tx);margin-top:2px}
+.loc{font-size:13px;color:var(--mut)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:11px;font-weight:600;border-radius:6px;padding:2px 7px;background:var(--line2);color:var(--mut)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.info{background:var(--acc-bg);color:var(--acc)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.loadmore{display:block;margin:24px auto 0;padding:10px 22px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-weight:600}
+.empty{text-align:center;color:var(--mut);padding:60px 20px}
+
+/* ---------- panel (detail + filtry) ---------- */
+.overlay{position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:40;display:none}
+.overlay.on{display:block}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--bg);z-index:50;transform:translateX(100%);transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column;visibility:hidden}
+.panel.on{transform:none;visibility:visible;box-shadow:var(--shadow-lg)}
+.panel-h{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--card);border-bottom:1px solid var(--line)}
+.panel-h h3{font-size:16px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x{width:34px;height:34px;border-radius:8px;font-size:20px;color:var(--mut)}
+.x:hover{background:var(--bg)}
+.panel-b{overflow-y:auto;padding:16px 18px 40px;flex:1}
+.panel-f{padding:12px 18px;background:var(--card);border-top:1px solid var(--line);display:flex;gap:10px}
+.btn{border-radius:10px;padding:10px 14px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card);flex:1;text-align:center}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#fff}
+
+.hero-img{display:block;width:100%;border-radius:12px;aspect-ratio:16/10;object-fit:cover;background:var(--line2);margin-bottom:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.box h4{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cmp div span{display:block;color:var(--mut);font-size:12px}
+.cmp div b{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.verdict-line{margin-top:12px;padding:10px 12px;border-radius:10px;font-weight:600}
+.meter{position:relative;height:8px;border-radius:99px;background:linear-gradient(90deg,var(--ok) 0%,#a6c8b4 40%,var(--line) 50%,#e8b4ad 60%,var(--bad) 100%);margin:14px 0 4px}
+.meter i{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:var(--tx);transform:translateX(-50%)}
+.meter-l{display:flex;justify-content:space-between;font-size:11px;color:var(--mut2)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:13.5px;border-bottom:1px solid var(--line2)}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--mut)}
+.kv b{font-weight:500;text-align:right}
+.kv.t{border-top:1px solid var(--line);border-bottom:0;margin-top:4px;padding-top:8px}
+.kv.t b{font-weight:700}
+.kv.sub span{padding-left:12px}
+.alert{border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.bad{background:var(--bad-bg);color:var(--bad)}
+.alert.info{background:var(--acc-bg);color:var(--acc)}
+details.box{padding:0}
+details.box summary{padding:14px 16px;cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between}
+details.box summary::after{content:'▾';color:var(--mut)}
+details.box[open] summary::after{content:'▴'}
+details.box .in{padding:0 16px 14px}
+.form-r{display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center;margin-bottom:8px;font-size:13px}
+.form-r label{color:var(--mut)}
+.hint{color:var(--mut);font-size:12px;margin-top:6px}
+
+/* filtry v panelu */
+.fsec{margin-bottom:18px}
+.fsec h5{font-size:13px;font-weight:600;margin-bottom:8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:4px 0;cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--acc)}
+.clist{max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card)}
+.clist-a{display:flex;gap:12px;margin-top:4px;font-size:12px}
+.clist-a button{color:var(--acc);font-weight:500}
+
+@media(max-width:640px){
+  .bar{padding:10px 16px}.filters,main{padding-left:16px;padding-right:16px}
+  .bar .gen{display:none}.search{max-width:none;flex-basis:100%}
+  header{position:static}
+  .chips{flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none}
+  .summary .reset{margin-left:0}
+  .grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
+
 <div id="landing" style="display:none">
-  <div class="landing-wrap">
-    <h1>🏠 Ocenění nemovitostí</h1>
-    <div class="sub">tržní hodnota dle tvého modelu · peer group · podhodnocené příležitosti<br>vyber kraj</div>
-    <div class="karty">
-      <a class="karta" href="?kraj=praha"><span class="ico">🏙️</span><h2>Praha</h2><div class="pocty" id="p-praha">načítám…</div></a>
-      <a class="karta" href="?kraj=stredocesky"><span class="ico">🌳</span><h2>Střední Čechy</h2><div class="pocty" id="p-stredocesky">načítám…</div></a>
+  <div class="land">
+    <h1>Ocenění nemovitostí</h1>
+    <p>Každý den projdeme všechny byty na prodej ze Sreality, odhadneme jejich tržní hodnotu<br>a ukážeme ty, které jsou nabízené výrazně pod ní.</p>
+    <div class="land-cards">
+      <a class="land-card" href="?kraj=praha"><h2>Praha</h2><div id="p-praha"></div></a>
+      <a class="land-card" href="?kraj=stredocesky"><h2>Střední Čechy</h2><div id="p-stredocesky"></div></a>
     </div>
-    <div id="gen-landing"></div>
+    <div class="land-foot" id="gen-landing"></div>
   </div>
 </div>
+
 <div id="app" style="display:none">
 <header>
-  <h1>🏠 Ocenění nemovitostí <span id="nazev-kraje" style="color:var(--acc)"></span></h1>
-  <div class="sub">tržní hodnota dle tvého modelu · peer group · podhodnocené příležitosti</div>
-  <div class="sub" id="gen"></div>
-  <a href="?" class="sub" style="margin-left:auto">⇄ vybrat jiný kraj</a>
+  <div class="bar">
+    <a class="logo" href="?">Ocenění nemovitostí</a>
+    <div class="seg"><a href="?kraj=praha" id="seg-praha">Praha</a><a href="?kraj=stredocesky" id="seg-stredocesky">Střední Čechy</a></div>
+    <span class="gen" id="gen"></span>
+  </div>
+  <div class="filters">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Čtvrť nebo ulice…" autocomplete="off">
+    </div>
+    <div class="chips" id="disp-chips"></div>
+    <select class="sel" id="f-cmax" title="Maximální celková cena">
+      <option value="">Cena: libovolná</option>
+      <option value="3">do 3 mil.</option><option value="5">do 5 mil.</option><option value="7">do 7 mil.</option>
+      <option value="10">do 10 mil.</option><option value="15">do 15 mil.</option><option value="20">do 20 mil.</option>
+    </select>
+    <button class="chip on" id="f-jen-pril" title="Jen byty nabízené aspoň 10 % pod odhadem">Jen výhodné (≥ 10 %)</button>
+    <select class="sel" id="sort">
+      <option value="sleva">Řadit: největší sleva</option>
+      <option value="cena">Řadit: nejlevnější</option>
+      <option value="m2">Řadit: nejnižší Kč/m²</option>
+      <option value="nove">Řadit: nejnovější</option>
+      <option value="vynos">Řadit: nejvyšší výnos z nájmu</option>
+    </select>
+    <button class="chip more" id="btn-more">Další filtry <span class="badge-n" id="more-n" style="display:none"></span></button>
+  </div>
 </header>
+
 <main>
-<aside>
-  <h2>Čtvrť</h2>
-  <div class="checklist" id="f-ctvrt"></div>
-  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-ctvrt')">vše</button><button type="button" onclick="checklistZadne('f-ctvrt')">žádné</button></div>
-  <h2>Dispozice</h2>
-  <div class="checklist" id="f-disp"></div>
-  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-disp')">vše</button><button type="button" onclick="checklistZadne('f-disp')">žádné</button></div>
-  <h2>Vlastnictví (družstevní)</h2>
-  <select id="f-druzstevni-rezim">
-    <option value="">nerozlišovat</option>
-    <option value="vyloucit">vyloučit družstevní</option>
-    <option value="jen">jen družstevní</option>
-  </select>
-  <h2>Stav (dle Sreality)</h2>
-  <div class="checklist" id="f-stav-sreality"></div>
-  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-stav-sreality')">vše</button><button type="button" onclick="checklistZadne('f-stav-sreality')">žádné</button></div>
-  <h2>Energetický štítek</h2>
-  <div class="checklist" id="f-stitek"></div>
-  <div class="checklist-actions"><button type="button" onclick="checklistVse('f-stitek')">vše</button><button type="button" onclick="checklistZadne('f-stitek')">žádné</button></div>
-  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center;margin-top:6px">
-    <input id="f-jen-vytah" type="checkbox" style="width:auto">jen s výtahem</label>
-  <h2>Cena (mil. Kč)</h2>
-  <div class="row2"><input id="f-cmin" type="number" placeholder="od" step="0.5"><input id="f-cmax" type="number" placeholder="do" step="0.5"></div>
-  <h2>Plocha (m²)</h2>
-  <div class="row2"><input id="f-pmin" type="number" placeholder="od"><input id="f-pmax" type="number" placeholder="do"></div>
-  <h2>Patro</h2>
-  <div class="row2"><input id="f-patro-min" type="number" placeholder="od, např. 1 (bez přízemí)" step="1"><input id="f-patro-max" type="number" placeholder="do" step="1"></div>
-  <h2>Sleva vs. tržní (%)</h2>
-  <div class="row2"><input id="f-sleva" type="number" placeholder="od, např. 10" step="1"><input id="f-sleva-max" type="number" placeholder="do" step="1"></div>
-  <h2>Min. výnos z nájmu (%)</h2>
-  <input id="f-vynos" type="number" placeholder="např. 3" step="0.5">
-  <h2>Bez ceny</h2>
-  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center">
-    <input id="f-bezceny" type="checkbox" style="width:auto">zobrazit „cena na vyžádání"</label>
-  <h2>Watchlist &amp; skryté</h2>
-  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center;margin-bottom:4px">
-    <input id="f-jen-watchlist" type="checkbox" style="width:auto">jen ★ watchlist</label>
-  <label style="font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center">
-    <input id="f-zobraz-skryte" type="checkbox" style="width:auto">zobrazit skryté</label>
-  <h2>Anuita</h2>
-  <select id="f-anuita-rezim" title="Textová heuristika z popisu inzerátu (typicky se týká družstevních bytů), nemusí být 100% spolehlivá">
-    <option value="">nerozlišovat</option>
-    <option value="vyloucit">vyloučit nesplacenou/nejasnou anuitu</option>
-    <option value="jen">⚠️ jen nesplacená anuita</option>
-  </select>
-  <h2>Postoupení (splátky developerovi)</h2>
-  <select id="f-postoupeni-rezim" title="Textová heuristika z popisu inzerátu — cena bývá jen 1. splátka, ne celková cena">
-    <option value="">nerozlišovat</option>
-    <option value="vyloucit">vyloučit postoupení</option>
-    <option value="jen">⚠️ jen postoupení</option>
-  </select>
-  <button class="btn-p" onclick="render()">Filtrovat</button>
-  <button class="btn-s" onclick="reset()">Zrušit filtry</button>
-</aside>
-<section>
-  <div class="stats" id="stats"></div>
-  <table>
-    <thead><tr>
-      <th onclick="srt('sleva_pct')">Sleva ▾</th><th>Nabídka</th><th>Čtvrť</th><th>Disp.</th>
-      <th onclick="srt('plocha_m2')">m²</th><th onclick="srt('cena_czk')">Cena</th>
-      <th onclick="srt('cena_m2')">Kč/m²</th><th onclick="srt('trzni_hodnota')">Tržní hodnota</th>
-      <th onclick="srt('prosty_vynos_pct')">Výnos</th><th></th>
-    </tr></thead>
-    <tbody id="tb"></tbody>
-  </table>
-</section>
+  <div class="summary">
+    <h2 id="sum-n"></h2><span class="s" id="sum-s"></span>
+    <button class="reset" id="btn-reset">Zrušit filtry</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <button class="loadmore" id="loadmore" style="display:none">Zobrazit další</button>
 </main>
 </div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="panel" id="panel-detail">
+  <div class="panel-h"><h3 id="d-title"></h3><button class="x" data-close>×</button></div>
+  <div class="panel-b" id="d-body"></div>
+  <div class="panel-f" id="d-foot"></div>
+</aside>
+<aside class="panel" id="panel-filters">
+  <div class="panel-h"><h3>Další filtry</h3><button class="x" data-close>×</button></div>
+  <div class="panel-b">
+    <div class="fsec"><h5>Sleva oproti odhadu (%)</h5>
+      <div class="row2"><input id="f-sleva" type="number" placeholder="od" step="1"><input id="f-sleva-max" type="number" placeholder="do" step="1"></div></div>
+    <div class="fsec"><h5>Celková cena (mil. Kč)</h5>
+      <div class="row2"><input id="f-cmin" type="number" placeholder="od" step="0.5"><input id="f-cmax2" type="number" placeholder="do" step="0.5"></div></div>
+    <div class="fsec"><h5>Plocha (m²)</h5>
+      <div class="row2"><input id="f-pmin" type="number" placeholder="od"><input id="f-pmax" type="number" placeholder="do"></div></div>
+    <div class="fsec"><h5>Patro</h5>
+      <div class="row2"><input id="f-patro-min" type="number" placeholder="od (1 = bez přízemí)"><input id="f-patro-max" type="number" placeholder="do"></div>
+      <label class="check"><input type="checkbox" id="f-jen-vytah">jen s výtahem</label></div>
+    <div class="fsec"><h5>Min. výnos z pronájmu (%)</h5><input id="f-vynos" type="number" placeholder="např. 3" step="0.5"></div>
+    <div class="fsec"><h5>Vlastnictví</h5>
+      <select id="f-vlastnictvi"><option value="">jakékoli</option><option value="osobni">jen osobní</option><option value="druzstevni">jen družstevní</option></select></div>
+    <div class="fsec"><h5>Cena a spolehlivost</h5>
+      <label class="check"><input type="checkbox" id="f-neuplna">ukázat i nabídky s neúplnou cenou (záloha bez uvedeného doplatku)</label>
+      <label class="check"><input type="checkbox" id="f-podezrele">ukázat i podezřele levné (sleva nad 50 %, obvykle chyba v inzerátu)</label>
+      <label class="check"><input type="checkbox" id="f-bezceny">ukázat i „cena na vyžádání“</label></div>
+    <div class="fsec"><h5>Moje výběry</h5>
+      <label class="check"><input type="checkbox" id="f-jen-watchlist">jen ★ uložené</label>
+      <label class="check"><input type="checkbox" id="f-zobraz-skryte">ukázat i skryté</label></div>
+    <div class="fsec"><h5>Stav dle Sreality</h5><div class="clist" id="f-stav-sreality"></div>
+      <div class="clist-a"><button data-all="f-stav-sreality">vše</button><button data-none="f-stav-sreality">nic</button></div></div>
+    <div class="fsec"><h5>Energetický štítek</h5><div class="clist" id="f-stitek"></div>
+      <div class="clist-a"><button data-all="f-stitek">vše</button><button data-none="f-stitek">nic</button></div></div>
+    <div class="fsec"><h5>Čtvrť / obec</h5><div class="clist" id="f-ctvrt"></div>
+      <div class="clist-a"><button data-all="f-ctvrt">vše</button><button data-none="f-ctvrt">nic</button></div></div>
+  </div>
+  <div class="panel-f"><button class="btn" id="btn-reset2">Zrušit</button><button class="btn p" data-close id="btn-show">Zobrazit</button></div>
+</aside>
+
 <script>
-let ALL=[], MAPA={}, view=[], sortKey='sleva_pct', sortAsc=false;
+const REPO='rubikandson/nemovitosti';
+const KRAJ_PARAM={praha:'Praha', stredocesky:'Středočeský'};
+const PODEZRELA_SLEVA=50, PRAH_PRILEZITOSTI=10, STRANKA=48;
+let ALL=[], MAPA={}, view=[], shown=0, AKTIVNI_KRAJ=null;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>n==null?'–':Math.round(n).toLocaleString('cs-CZ');
+const mil=n=>n==null?'–':(n/1e6).toLocaleString('cs-CZ',{minimumFractionDigits:n<1e7?2:1,maximumFractionDigits:n<1e7?2:1})+' mil. Kč';
 const pct=n=>n==null?'–':n.toLocaleString('cs-CZ',{maximumFractionDigits:1})+' %';
 const pctS=n=>n==null?'–':(n>0?'+':'')+n.toLocaleString('cs-CZ',{maximumFractionDigits:2})+' %';
-const mult=n=>n==null?'–':'× '+n.toLocaleString('cs-CZ',{maximumFractionDigits:4});
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+// Celková cena = inzerovaná cena + doplatek (anuita), viz src/sreality_detail.py
+const celkem=r=>r.cena_czk==null?null:(r.v_cena_celkova||r.cena_czk+(r.doplatek_czk||0));
+const podezrela=r=>r.sleva_pct!=null&&r.sleva_pct>PODEZRELA_SLEVA;
+const novinka=r=>r.datum_vlozeni&&(Date.now()-new Date(r.datum_vlozeni))<3*864e5;
+// CDN Sreality vydá fotku jen v některých velikostech (400×300, 749×562)
+const foto=(r,velka)=>r.foto_url?esc(r.foto_url.split('?')[0]+(velka?'?fl=res,749,562,3|shr,,20|jpg,90':'?fl=res,400,300,3|shr,,20|jpg,90')):null;
 
-const REPO='rubikandson/nemovitosti';
+// ---------- GitHub Issue (watchlist, skrytí, ruční úpravy) ----------
 function otevriIssue(id,zmeny){
-  const title='uprava:'+id;
   const body='```json\n'+JSON.stringify(zmeny,null,2)+'\n```';
-  const url='https://github.com/'+REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
-  window.open(url,'_blank');
+  window.open('https://github.com/'+REPO+'/issues/new?title='+encodeURIComponent('uprava:'+id)+'&body='+encodeURIComponent(body),'_blank');
 }
-function prepni(ev,id,pole,hodnota){
-  if(ev)ev.stopPropagation();
-  otevriIssue(id,{[pole]:hodnota});
-}
+function prepni(ev,id,pole,hodnota){if(ev)ev.stopPropagation();otevriIssue(id,{[pole]:hodnota});}
 
-// Praha a Střední Čechy jsou od 2026-08 oddělené (na žádost uživatele):
-// bez ?kraj= parametru se zobrazí výběrová stránka (landing), s parametrem
-// se appka (filtry/tabulka) omezí jen na nabídky daného kraje — jak
-// v datech (ALL, MAPA), tak v checklist filtrech (Čtvrť atd.), protože
-// Praha a Střední Čechy mají úplně jiné čtvrti/obce.
-const KRAJ_PARAM={praha:'Praha', stredocesky:'Středočeský'};
-let AKTIVNI_KRAJ=null;
+// ---------- start ----------
 async function boot(){
   const d=await (await fetch('data.json')).json();
-  const krajParam=new URLSearchParams(location.search).get('kraj');
-  AKTIVNI_KRAJ=KRAJ_PARAM[krajParam]||null;
-  if(!AKTIVNI_KRAJ){ukazLanding(d);return;}
-  document.getElementById('landing').style.display='none';
-  document.getElementById('app').style.display='';
+  const kp=new URLSearchParams(location.search).get('kraj');
+  AKTIVNI_KRAJ=KRAJ_PARAM[kp]||null;
+  const gen='Aktualizováno '+new Date(d.generated).toLocaleString('cs-CZ',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(!AKTIVNI_KRAJ){ukazLanding(d,gen);return;}
+  $('app').style.display='';
+  $('seg-'+kp).classList.add('on');
   document.title='Ocenění nemovitostí — '+AKTIVNI_KRAJ;
+  $('gen').textContent=gen;
   ALL=d.listings.filter(r=>r.kraj===AKTIVNI_KRAJ);
   d.price_map.filter(p=>p.kraj===AKTIVNI_KRAJ).forEach(p=>MAPA[p.ctvrt]=p);
-  document.getElementById('gen').textContent='data: '+(d.generated||'').replace('T',' ');
-  document.getElementById('nazev-kraje').textContent='— '+AKTIVNI_KRAJ;
+  // dispozice jako čipy (seskupené 1+kk/1+1 → „1“ atd.)
+  $('disp-chips').innerHTML=['1','2','3','4','5+'].map(k=>`<button class="chip" data-disp="${k}">${k==='5+'?'5+ pokoje':k+(k==='1'?' pokoj':' pokoje')}</button>`).join('');
   const cts={}; ALL.forEach(r=>{if(r.ctvrt)cts[r.ctvrt]=(cts[r.ctvrt]||0)+1});
-  renderChecklist('f-ctvrt', Object.keys(cts).sort().map(c=>({hodnota:c,popisek:`${c} (${cts[c]})`})));
-  const ds=[...new Set(ALL.map(r=>r.dispozice).filter(Boolean))].sort();
-  renderChecklist('f-disp', ds.map(d=>({hodnota:d,popisek:d})));
-  const st=[...new Set(ALL.map(r=>r.energeticky_stitek).filter(Boolean))].sort();
-  renderChecklist('f-stitek', st.map(s=>({hodnota:s,popisek:s})));
-  const stavSr=[...new Set(ALL.map(r=>r.stav_sreality).filter(Boolean))].sort();
-  renderChecklist('f-stav-sreality', stavSr.map(s=>({hodnota:s,popisek:s})));
-  nastavDefaultniFiltry();
+  checklist('f-ctvrt',Object.keys(cts).sort((a,b)=>a.localeCompare(b,'cs')).map(c=>[c,`${c} (${cts[c]})`]));
+  checklist('f-stitek',[...new Set(ALL.map(r=>r.energeticky_stitek).filter(Boolean))].sort().map(s=>[s,s]));
+  checklist('f-stav-sreality',[...new Set(ALL.map(r=>r.stav_sreality).filter(Boolean))].sort().map(s=>[s,s]));
+  wire();
   render();
 }
-// Výběrová stránka (Praha / Střední Čechy) s živými počty z data.json.
-function ukazLanding(d){
-  document.getElementById('app').style.display='none';
-  document.getElementById('landing').style.display='';
-  document.getElementById('gen-landing').textContent='data: '+(d.generated||'').replace('T',' ');
-  const shrn=kraj=>{
-    const l=d.listings.filter(r=>r.kraj===kraj);
-    const pril=l.filter(r=>r.sleva_pct!=null&&r.sleva_pct>=10).length;
-    return `${l.length} nabídek · ${pril} příležitostí (sleva ≥ 10 %)`;
-  };
-  document.getElementById('p-praha').textContent=shrn('Praha');
-  document.getElementById('p-stredocesky').textContent=shrn('Středočeský');
+function ukazLanding(d,gen){
+  $('landing').style.display='';
+  $('gen-landing').textContent=gen+' · zdroj: Sreality.cz';
+  for(const [id,kraj] of [['p-praha','Praha'],['p-stredocesky','Středočeský']]){
+    const l=d.listings.filter(r=>r.kraj===kraj&&r.cena_czk!=null);
+    const pril=l.filter(r=>r.sleva_pct>=PRAH_PRILEZITOSTI&&!podezrela(r)&&!r.cena_neuplna).length;
+    $(id).innerHTML=`<div class="big num">${fmt(pril)}</div><div class="lbl">výhodných nabídek (≥ 10 % pod odhadem)</div><div class="row num">z ${fmt(l.length)} bytů na prodej</div>`;
+  }
 }
-// Výchozí filtry (na žádost uživatele, 2026-07-30): vyloučit družstevní
-// vlastnictví, vyloučit nesplacenou anuitu, vyloučit atypickou dispozici.
-// Platí při prvním načtení appky i po "Zrušit filtry" — je to uživatelův
-// běžný výchozí pohled, ne appka bez jakéhokoli filtru. Kdykoliv jde
-// jednoduše přepnout zpátky (select na "nerozlišovat", zaškrtnout
-// "Atypický").
-function nastavDefaultniFiltry(){
-  document.getElementById('f-druzstevni-rezim').value = 'vyloucit';
-  document.getElementById('f-anuita-rezim').value = 'vyloucit';
-  const atyp = document.querySelector('#f-disp input[value="Atypický"]');
-  if (atyp) atyp.checked = false;
+function checklist(id,polozky){
+  $(id).innerHTML=polozky.map(([v,t])=>`<label class="check"><input type="checkbox" checked value="${esc(v)}">${esc(t)}</label>`).join('');
 }
-const num=id=>{const v=document.getElementById(id).value;return v===''?null:+v;};
-// Checklist filtr (na žádost uživatele, místo víceklikacího <select multiple>
-// s odděleným "vyloučit" přepínačem): každá položka má vlastní zaškrtávátko,
-// defaultně VŠE zaškrtnuto (=žádný filtr). Odškrtnutím některých položek se
-// filtruje jen na zaškrtnuté — takže "chci vše kromě X" (odškrtnout jen X) i
-// "chci jen X" (žádné, pak zaškrtnout X) jde stejně snadno.
-function renderChecklist(id, polozky){
-  document.getElementById(id).innerHTML = polozky.map(p=>
-    `<label><input type="checkbox" checked value="${p.hodnota}">${p.popisek}</label>`).join('');
-}
-function checklistVse(id){document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=true);render();}
-function checklistZadne(id){document.querySelectorAll('#'+id+' input').forEach(i=>i.checked=false);render();}
-// Vrátí {vse: true, pokud jsou zaškrtnuté úplně všechny (= žádný filtr);
-// zaskrtnute: pole hodnot zaškrtnutých položek}.
 function checklistStav(id){
-  const inputs=[...document.querySelectorAll('#'+id+' input')];
-  return {vse: inputs.every(i=>i.checked), zaskrtnute: inputs.filter(i=>i.checked).map(i=>i.value)};
+  const i=[...document.querySelectorAll('#'+id+' input')];
+  return {vse:i.every(x=>x.checked), set:new Set(i.filter(x=>x.checked).map(x=>x.value))};
 }
-function srt(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=(k==='cena_czk');}render();}
+function skupinaDisp(d){const m=/^(\d)/.exec(d||'');if(!m)return null;return +m[1]>=5?'5+':m[1];}
+
+// ---------- ovládání ----------
+function wire(){
+  let t; $('q').addEventListener('input',()=>{clearTimeout(t);t=setTimeout(render,150)});
+  $('disp-chips').addEventListener('click',e=>{const b=e.target.closest('[data-disp]');if(b){b.classList.toggle('on');render();}});
+  $('f-jen-pril').onclick=()=>{$('f-jen-pril').classList.toggle('on');render();};
+  ['f-cmax','sort'].forEach(id=>$(id).onchange=render);
+  $('f-cmax').addEventListener('change',()=>{$('f-cmax2').value=$('f-cmax').value;});
+  document.querySelectorAll('#panel-filters input,#panel-filters select').forEach(el=>el.addEventListener('change',()=>{if(el.id==='f-cmax2')$('f-cmax').value=[...$('f-cmax').options].some(o=>o.value===el.value)?el.value:'';render();}));
+  document.querySelectorAll('[data-all]').forEach(b=>b.onclick=()=>{document.querySelectorAll('#'+b.dataset.all+' input').forEach(i=>i.checked=true);render();});
+  document.querySelectorAll('[data-none]').forEach(b=>b.onclick=()=>{document.querySelectorAll('#'+b.dataset.none+' input').forEach(i=>i.checked=false);render();});
+  $('btn-more').onclick=()=>otevriPanel('panel-filters');
+  $('btn-reset').onclick=$('btn-reset2').onclick=reset;
+  $('loadmore').onclick=()=>kresli(false);
+  $('overlay').onclick=zavriPanely;
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',zavriPanely));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')zavriPanely();});
+  $('grid').addEventListener('click',e=>{const c=e.target.closest('.card');if(c&&!e.target.closest('.star'))detail(+c.dataset.i);});
+}
 function reset(){
-  document.querySelectorAll('aside select,aside input').forEach(e=>{if(e.type==='checkbox')e.checked=false;else e.value='';if(e.multiple)[...e.options].forEach(o=>o.selected=false)});
-  document.querySelectorAll('.checklist input').forEach(i=>i.checked=true);
-  nastavDefaultniFiltry();
+  $('q').value='';
+  document.querySelectorAll('#disp-chips .chip').forEach(c=>c.classList.remove('on'));
+  $('f-jen-pril').classList.add('on');
+  $('f-cmax').value='';$('sort').value='sleva';
+  document.querySelectorAll('#panel-filters input').forEach(e=>{if(e.type==='checkbox')e.checked=e.closest('.clist')!=null;else e.value='';});
+  document.querySelectorAll('#panel-filters select').forEach(e=>e.value='');
   render();
 }
+function otevriPanel(id){$('overlay').classList.add('on');$(id).classList.add('on');document.body.style.overflow='hidden';}
+function zavriPanely(){$('overlay').classList.remove('on');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));document.body.style.overflow='';}
 
+// ---------- filtrování ----------
+const num=id=>{const v=$(id).value;return v===''?null:+v;};
 function render(){
-  const ct=checklistStav('f-ctvrt'), dp=checklistStav('f-disp'),
-        st=checklistStav('f-stitek'), stavSr=checklistStav('f-stav-sreality');
-  const cmin=num('f-cmin'), cmax=num('f-cmax'), pmin=num('f-pmin'), pmax=num('f-pmax'),
-        patroMin=num('f-patro-min'), patroMax=num('f-patro-max'),
-        msl=num('f-sleva'), mslMax=num('f-sleva-max'), mvy=num('f-vynos');
-  const bez=document.getElementById('f-bezceny').checked;
-  const jenWatch=document.getElementById('f-jen-watchlist').checked;
-  const zobrSkryte=document.getElementById('f-zobraz-skryte').checked;
-  const druzstevniRezim=document.getElementById('f-druzstevni-rezim').value;
-  const anuitaRezim=document.getElementById('f-anuita-rezim').value;
-  const postoupeniRezim=document.getElementById('f-postoupeni-rezim').value;
-  const jenVytah=document.getElementById('f-jen-vytah').checked;
-  view=ALL.filter(r=>
-    (bez||r.cena_czk!=null) &&
-    (zobrSkryte||!r.skryto) && (!jenWatch||r.watchlist) &&
-    (druzstevniRezim!=='vyloucit'||r.vlastnictvi!=='Družstevní') &&
-    (druzstevniRezim!=='jen'||r.vlastnictvi==='Družstevní') &&
-    (anuitaRezim!=='vyloucit'||(r.anuita_stav!=='nesplacena'&&r.anuita_stav!=='neznamo')) &&
-    (anuitaRezim!=='jen'||r.anuita_stav==='nesplacena') &&
-    (postoupeniRezim!=='vyloucit'||r.postoupeni_stav!=='ano') &&
-    (postoupeniRezim!=='jen'||r.postoupeni_stav==='ano') &&
-    (!jenVytah||r.vytah==='Ano') &&
-    (ct.vse||ct.zaskrtnute.includes(r.ctvrt)) && (dp.vse||dp.zaskrtnute.includes(r.dispozice)) &&
-    (st.vse||st.zaskrtnute.includes(r.energeticky_stitek)) &&
-    (stavSr.vse||stavSr.zaskrtnute.includes(r.stav_sreality)) &&
-    (cmin==null||r.cena_czk>=cmin*1e6) && (cmax==null||r.cena_czk<=cmax*1e6) &&
-    (pmin==null||r.plocha_m2>=pmin) && (pmax==null||r.plocha_m2<=pmax) &&
-    (patroMin==null||(r.patro!=null&&r.patro>=patroMin)) &&
-    (patroMax==null||(r.patro!=null&&r.patro<=patroMax)) &&
-    (msl==null||(r.sleva_pct!=null&&r.sleva_pct>=msl)) &&
-    (mslMax==null||(r.sleva_pct!=null&&r.sleva_pct<=mslMax)) &&
-    (mvy==null||(r.prosty_vynos_pct!=null&&r.prosty_vynos_pct>=mvy)));
-  view.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];
-    if(x==null)return 1; if(y==null)return -1; return sortAsc?x-y:y-x;});
-  const tb=document.getElementById('tb');
-  // Omezení počtu vykreslených řádků (CAP): appka měla u ~4600+ nabídek
-  // tendenci zamrznout po chvíli klikání — každé přefiltrování stavělo
-  // tisíce <tr> najednou. Řazení proběhne nad VŠEMI nabídkami (view),
-  // do DOM se ale posílá jen prvních CAP — souhrny (stats) níže počítají
-  // stále z celého view, takže čísla zůstávají správná.
-  const CAP=400;
-  const zobrazene=view.slice(0,CAP);
-  if(!view.length){tb.innerHTML='<tr><td colspan="10" class="empty">Žádné nabídky — počkej na první běh importu, nebo uvolni filtry.</td></tr>';}
-  else tb.innerHTML=zobrazene.map((r,i)=>{
-    const cls=r.sleva_pct>=15?'sleva-ok':r.sleva_pct>=5?'sleva-mid':'sleva-bad';
-    return `<tr class="l${r.skryto?' skryta':''}" onclick="detail(${i},this)">
-      <td class="${cls}">${pct(r.sleva_pct)}</td>
-      <td>${r.nazev||''}</td><td>${r.ctvrt||''}</td><td>${r.dispozice||''}</td>
-      <td>${r.plocha_m2||''}</td><td>${r.cena_czk==null?'na vyžádání':fmt(r.cena_czk)}</td><td>${fmt(r.cena_m2)}</td>
-      <td>${fmt(r.trzni_hodnota)}</td><td>${pct(r.prosty_vynos_pct)}</td>
-      <td class="ico-cell">
-        <span class="ico${r.watchlist?' on':''}" title="Watchlist" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★':'☆'}</span>
-        <span class="ico${r.skryto?' on':''}" title="Skrýt/zobrazit" onclick="prepni(event,${r.id},'skryto',${r.skryto?0:1})">${r.skryto?'🚫':'👁'}</span>
-      </td></tr>`;
-  }).join('');
-  const se=view.filter(r=>r.sleva_pct!=null);
-  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
-  document.getElementById('stats').innerHTML=
-    `<div class="stat"><b>${view.length}</b><span>nabídek${view.length>CAP?` (zobrazeno prvních ${CAP})`:''}</span></div>
-     <div class="stat"><b>${se.filter(r=>r.sleva_pct>=10).length}</b><span>příležitostí (sleva ≥ 10 %)</span></div>
-     <div class="stat"><b>${pct(avg(se.map(r=>r.sleva_pct)))}</b><span>průměrná sleva</span></div>
-     <div class="stat"><b>${fmt(avg(view.filter(r=>r.cena_m2).map(r=>r.cena_m2)))}</b><span>Ø Kč/m² (výběr)</span></div>`;
+  const q=$('q').value.trim().toLowerCase();
+  const disp=new Set([...document.querySelectorAll('#disp-chips .chip.on')].map(c=>c.dataset.disp));
+  const jenPril=$('f-jen-pril').classList.contains('on');
+  const cmax=num('f-cmax2')??num('f-cmax'), cmin=num('f-cmin');
+  const pmin=num('f-pmin'),pmax=num('f-pmax'),patMin=num('f-patro-min'),patMax=num('f-patro-max');
+  const smin=num('f-sleva'),smax=num('f-sleva-max'),vyn=num('f-vynos');
+  const vl=$('f-vlastnictvi').value, vytah=$('f-jen-vytah').checked;
+  const neupl=$('f-neuplna').checked, podez=$('f-podezrele').checked, bezc=$('f-bezceny').checked;
+  const watch=$('f-jen-watchlist').checked, skryte=$('f-zobraz-skryte').checked;
+  const ct=checklistStav('f-ctvrt'), st=checklistStav('f-stitek'), ss=checklistStav('f-stav-sreality');
+  // počet aktivních „dalších filtrů“ na tlačítku
+  const nMore=[cmin,smin,smax,pmin,pmax,patMin,patMax,vyn].filter(v=>v!=null).length+[vl,vytah,neupl,podez,bezc,watch,skryte].filter(Boolean).length+[ct,st,ss].filter(c=>!c.vse).length;
+  $('more-n').style.display=nMore?'':'none';$('more-n').textContent=nMore;
+
+  view=ALL.filter(r=>{
+    const c=celkem(r);
+    if(c==null&&!bezc)return false;
+    if(!skryte&&r.skryto)return false;
+    if(watch&&!r.watchlist)return false;
+    if(!neupl&&r.cena_neuplna)return false;
+    if(!podez&&podezrela(r))return false;
+    if(jenPril&&!(r.sleva_pct>=PRAH_PRILEZITOSTI))return false;
+    if(q&&!((r.ctvrt||'').toLowerCase().includes(q)||(r.nazev||'').toLowerCase().includes(q)))return false;
+    if(disp.size&&!disp.has(skupinaDisp(r.dispozice)))return false;
+    if(cmax!=null&&!(c<=cmax*1e6))return false;
+    if(cmin!=null&&!(c>=cmin*1e6))return false;
+    if(pmin!=null&&!(r.plocha_m2>=pmin))return false;
+    if(pmax!=null&&!(r.plocha_m2<=pmax))return false;
+    if(patMin!=null&&!(r.patro!=null&&r.patro>=patMin))return false;
+    if(patMax!=null&&!(r.patro!=null&&r.patro<=patMax))return false;
+    if(smin!=null&&!(r.sleva_pct>=smin))return false;
+    if(smax!=null&&!(r.sleva_pct<=smax))return false;
+    if(vyn!=null&&!(r.prosty_vynos_pct>=vyn))return false;
+    if(vl==='osobni'&&r.vlastnictvi!=='Osobní')return false;
+    if(vl==='druzstevni'&&r.vlastnictvi!=='Družstevní')return false;
+    if(vytah&&r.vytah!=='Ano')return false;
+    if(!ct.vse&&!ct.set.has(r.ctvrt))return false;
+    if(!st.vse&&!st.set.has(r.energeticky_stitek))return false;
+    if(!ss.vse&&!ss.set.has(r.stav_sreality))return false;
+    return true;
+  });
+  const key={sleva:r=>r.sleva_pct,cena:r=>celkem(r),m2:r=>r.cena_m2,nove:r=>r.first_seen?+new Date(r.first_seen):null,vynos:r=>r.prosty_vynos_pct}[$('sort').value];
+  const asc=['cena','m2'].includes($('sort').value);
+  view.sort((a,b)=>{const x=key(a),y=key(b);if(x==null)return 1;if(y==null)return -1;return asc?x-y:y-x;});
+
+  const n=view.length;
+  $('sum-n').textContent=n.toLocaleString('cs-CZ')+' '+(n===1?'byt':n>=2&&n<=4?'byty':'bytů');
+  const sl=view.filter(r=>r.sleva_pct!=null).map(r=>r.sleva_pct);
+  $('sum-s').textContent=n?`průměrně ${pct(avg(sl))} pod odhadem · Ø ${fmt(avg(view.filter(r=>r.cena_m2).map(r=>r.cena_m2)))} Kč/m²`:'';
+  shown=0; $('grid').innerHTML=''; kresli(true);
+  window.scrollTo({top:0});
+}
+function kresli(prvni){
+  const dalsi=view.slice(shown,shown+STRANKA);
+  if(prvni&&!view.length){$('grid').innerHTML='<div class="empty" style="grid-column:1/-1">Žádný byt neodpovídá filtrům. Zkuste některé uvolnit.</div>';}
+  $('grid').insertAdjacentHTML('beforeend',dalsi.map((r,k)=>karta(r,shown+k)).join(''));
+  shown+=dalsi.length;
+  $('loadmore').style.display=shown<view.length?'':'none';
+  $('loadmore').textContent=`Zobrazit dalších ${Math.min(STRANKA,view.length-shown)} (zbývá ${(view.length-shown).toLocaleString('cs-CZ')})`;
 }
 
-function detail(i,tr){
-  const old=document.querySelector('.detail'); const was=old&&old.dataset.i==i;
-  if(old)old.remove(); if(was)return;
-  const r=view[i];
-  const peers=ALL.filter(x=>x.ctvrt===r.ctvrt&&x.plocha_m2>0);
-  const cm2=peers.map(x=>x.cena_czk/x.plocha_m2);
-  const pm=MAPA[r.ctvrt];
-  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
-  const row=document.createElement('tr'); row.className='detail'; row.dataset.i=i;
-  row.innerHTML=`<td colspan="10"><div class="grid">
-    <div class="card calc"><h3>Postup výpočtu tržní hodnoty</h3>
-      ${(r.v_plocha_vedlejsi_m2||r.v_plocha_zahrada_m2)?`
-      <div class="kv step"><span>Užitná plocha (dle Sreality)</span><b>${r.plocha_m2||'–'} m²</b></div>
-      ${r.v_plocha_jadro?`<div class="kv step"><span>jádro bytu (bez terasy/lodžie/balkonu)</span><b>${r.v_plocha_jadro} m²</b></div>`:''}
-      ${r.v_plocha_vedlejsi_m2?`<div class="kv step"><span>+ terasa/lodžie/balkon ${r.v_plocha_vedlejsi_m2} m² × 25 %</span><b>+ ${(r.v_plocha_vedlejsi_m2*0.25).toFixed(1)} m²</b></div>`:''}
-      ${r.v_plocha_zahrada_m2?`<div class="kv step"><span>+ zahrada ${r.v_plocha_zahrada_m2} m² × 15 %</span><b>+ ${(r.v_plocha_zahrada_m2*0.15).toFixed(1)} m²</b></div>`:''}
-      <div class="kv sum"><span>= Efektivní plocha</span><b>${r.v_plocha_efektivni} m²</b></div>`:``}
-      ${r.v_zakladni_rucne?`
-      <div class="kv"><span>Základní cena/m² (ručně zadáno)</span><b>${fmt(r.v_zakladni_cena_m2)} Kč</b></div>`:`
-      <div class="kv"><span>Cena z cenové mapy (${r.ctvrt||'–'})</span><b>${fmt(r.v_cena_mapy_m2)} Kč/m²</b></div>
-      <div class="kv step"><span>faktor velikosti bytu (${r.v_plocha_efektivni||r.plocha_m2||'–'} m²)</span><b>${mult(r.v_faktor_velikosti)}</b></div>
-      <div class="kv sum"><span>= Základní cena/m²</span><b>${fmt(r.v_zakladni_cena_m2)} Kč</b></div>`}
-      <div class="kv step"><span>koef. lokalita</span><b>${pctS(r.v_koef_lokalita_pct)}</b></div>
-      <div class="kv step"><span>koef. stav</span><b>${pctS(r.v_koef_stav_pct)}</b></div>
-      <div class="kv step"><span>koef. věk${r.v_vek_pouzity!=null?' ('+r.v_vek_pouzity+' let)':''}</span><b>${pctS(r.v_koef_vek_pct)}</b></div>
-      <div class="kv step"><span>koef. další (ruční)</span><b>${pctS(r.v_koef_dalsi_pct)}</b></div>
-      <div class="kv sum"><span>= Výsledná cena/m² (koef. celkem ${r.koef_celkem??'–'})</span><b>${fmt(r.vysledna_cena_m2)} Kč</b></div>
-      <div class="kv step"><span>× plocha (efektivní)</span><b>× ${r.v_plocha_efektivni||r.plocha_m2||'–'} m²</b></div>
-      <div class="kv sum"><span>= Cena za byt</span><b>${fmt(r.cena_za_byt)} Kč</b></div>
-      <div class="kv step"><span>+ příplatek (parkování: ${r.parkovani||'Ne'}${r.v_typ_parkovani?' — '+r.v_typ_parkovani:''}${r.v_koef_lokalita_parkovani?', koef. lokalita ×'+r.v_koef_lokalita_parkovani:''})</span><b>+ ${fmt(r.priplatky_czk)} Kč</b></div>
-      <div class="kv sum total"><span>= Tržní hodnota</span><b>${fmt(r.trzni_hodnota)} Kč</b></div>
-      <div class="kv"><span>Inzerovaná cena</span><b>${r.cena_czk==null?'na vyžádání':fmt(r.cena_czk)+' Kč'}</b></div>
-      <div class="kv hi"><span>Rozdíl (sleva vs. tržní)</span><b>${pct(r.sleva_pct)}</b></div></div>
-    <div class="card"><h3>Peer group — ${r.ctvrt||'–'}</h3>
-      <div class="kv"><span>Nabídek ve čtvrti</span><b>${peers.length}</b></div>
-      <div class="kv"><span>Ø Kč/m² nabídky</span><b>${fmt(avg(cm2))}</b></div>
-      <div class="kv"><span>Rozpětí Kč/m²</span><b>${cm2.length?fmt(Math.min(...cm2))+'–'+fmt(Math.max(...cm2)):'–'}</b></div>
-      <div class="kv"><span>Cenová mapa Kč/m²</span><b>${pm?fmt(pm.cena_za_m2_czk):'–'}</b></div>
-      <div class="kv"><span>Transakcí v mapě</span><b>${pm?pm.pocet_transakci:'–'}</b></div></div>
-    <div class="card"><h3>Watchlist &amp; skrytí</h3>
-      <div class="kv"><span>Watchlist</span><b>${r.watchlist?'ano':'ne'}</b></div>
-      <div class="kv"><span>Skryto z hlavního výpisu</span><b>${r.skryto?'ano':'ne'}</b></div>
-      <div class="btn-row">
-        <button class="btn-s" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★ odebrat z watchlistu':'☆ přidat na watchlist'}</button>
-        <button class="btn-s" onclick="prepni(event,${r.id},'skryto',${r.skryto?0:1})">${r.skryto?'👁 zobrazit zpět':'🚫 skrýt'}</button>
+// ---------- karta ----------
+function verdikt(r){
+  if(r.cena_neuplna)return ['v-warn','Cena neúplná'];
+  if(r.sleva_pct==null)return ['v-mid','Bez odhadu'];
+  if(podezrela(r))return ['v-warn','Podezřele levné'];
+  const s=Math.round(r.sleva_pct);
+  if(s>=PRAH_PRILEZITOSTI)return ['v-ok',`${s} % pod odhadem`];
+  if(s>=0)return ['v-mid',`${s} % pod odhadem`];
+  return ['v-bad',`${-s} % nad odhadem`];
+}
+function stitky(r){
+  const t=[];
+  if(novinka(r))t.push('<span class="tag info">Nové</span>');
+  if(r.doplatek_czk)t.push(`<span class="tag warn" title="Inzerovaná cena je jen převod podílu; doplatek je započtený v celkové ceně">vč. doplatku ${mil(r.doplatek_czk)}</span>`);
+  if(r.vlastnictvi==='Družstevní')t.push('<span class="tag">družstevní</span>');
+  if(r.postoupeni_stav==='ano'&&!r.doplatek_czk)t.push('<span class="tag bad">postoupení – ověř cenu</span>');
+  if(!r.detail_at)t.push('<span class="tag" title="Detaily inzerátu (stav, vlastnictví, doplatek) se ještě nestáhly">čeká na kontrolu</span>');
+  return t.join('');
+}
+function karta(r,i){
+  const [vc,vt]=verdikt(r);
+  const c=celkem(r);
+  return `<article class="card${r.skryto?' skryta':''}" data-i="${i}">
+    <div class="ph">${r.foto_url?`<img src="${foto(r)}" alt="" loading="lazy" referrerpolicy="no-referrer">`:'<span class="noimg">bez fotky</span>'}
+      <span class="verdict ${vc}">${vt}</span>
+      <button class="star${r.watchlist?' on':''}" title="${r.watchlist?'Odebrat z uložených':'Uložit'}" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★':'☆'}</button>
+    </div>
+    <div class="body">
+      <div class="price num">${c==null?'Cena na vyžádání':mil(c)}</div>
+      <div class="est num">odhad hodnoty <b>${mil(r.trzni_hodnota)}</b></div>
+      <div class="meta num">${esc(r.dispozice||'')} · ${r.plocha_m2?fmt(r.plocha_m2)+' m²':'?'} · ${fmt(r.cena_m2)} Kč/m²</div>
+      <div class="loc">${esc(r.ctvrt||'')}</div>
+      <div class="tags">${stitky(r)}</div>
+    </div>
+  </article>`;
+}
+
+// ---------- detail ----------
+function detail(i){
+  const r=view[i]; if(!r)return;
+  const c=celkem(r), [vc,vt]=verdikt(r);
+  const peers=ALL.filter(x=>x.ctvrt===r.ctvrt&&x.cena_m2&&!podezrela(x)&&!x.cena_neuplna);
+  const cm2=peers.map(x=>x.cena_m2), pm=MAPA[r.ctvrt];
+  const s=r.sleva_pct, poz=s==null?50:Math.max(2,Math.min(98,50-s));
+  $('d-title').textContent=`${r.dispozice||''}, ${r.plocha_m2?fmt(r.plocha_m2)+' m²':''} · ${r.ctvrt||''}`;
+  const varovani=[];
+  if(r.cena_neuplna)varovani.push(`<div class="alert warn"><b>Cena je pravděpodobně jen záloha.</b> Inzerát zmiňuje doplatek/anuitu, ale částku se z textu nepodařilo vyčíst. Skutečnou cenu ověřte v inzerátu, sleva níže je nespolehlivá.</div>`);
+  if(r.doplatek_czk)varovani.push(`<div class="alert info">Inzerovaná cena <b>${mil(r.cena_czk)}</b> je jen převod družstevního podílu. K ní je doplatek (anuita) <b>${mil(r.doplatek_czk)}</b>, splácený družstvu. Odhad počítá s celkovou cenou <b>${mil(c)}</b>.</div>`);
+  if(podezrela(r))varovani.push(`<div class="alert warn"><b>Podezřele levné.</b> Sleva přes ${PODEZRELA_SLEVA} % bývá chyba v inzerátu (špatná plocha, jen podíl, nemovitost v zahraničí…). Ověřte v inzerátu.</div>`);
+  if(r.postoupeni_stav==='ano'&&!r.doplatek_czk)varovani.push(`<div class="alert bad"><b>Postoupení smlouvy.</b> Cena může být jen první splátka developerovi, ne celková cena.</div>`);
+  const anuita={nesplacena:'nesplacená',splacena:'splacená',neznamo:'zmíněna, stav nejasný'}[r.anuita_stav];
+
+  $('d-body').innerHTML=`
+    ${r.foto_url?`<img class="hero-img" src="${foto(r,true)}" alt="" referrerpolicy="no-referrer">`:''}
+    ${varovani.join('')}
+    <div class="box">
+      <div class="cmp num">
+        <div><span>Celková cena</span><b>${c==null?'na vyžádání':mil(c)}</b></div>
+        <div><span>Odhad tržní hodnoty</span><b>${mil(r.trzni_hodnota)}</b></div>
       </div>
-      <div style="font-size:11px;color:var(--mut);margin-top:6px">I tohle jde přes GitHub Issue (Submit new issue → zapíše se do ~2 minut).</div></div>
-    <div class="card"><h3>Nájem &amp; výnos</h3>
-      <div class="kv"><span>Roční nájem (10/12)</span><b>${fmt(r.najem_rocni)} Kč</b></div>
-      <div class="kv"><span>Prostý výnos</span><b>${pct(r.prosty_vynos_pct)}</b></div>
-      <div class="kv hi"><span>Celkový výnos 20 let (IRR)</span><b>${pct(r.celkovy_vynos_pct)}</b></div></div>
-    <div class="card"><h3>Hypotéka (LTV 80 %, 4,2 %, 30 let)</h3>
-      <div class="kv"><span>Měsíční splátka</span><b>${fmt(r.splatka_mesicni)} Kč</b></div>
-      <div class="kv"><span>Měsíční nájem</span><b>${fmt(r.najem_mesicni)} Kč</b></div>
-      <div class="kv hi"><span>Pokrytí splátky nájmem</span><b>${pct(r.pokryti_splatky_pct)}</b></div></div>
-    <div class="card"><h3>Vstupy</h3>
-      <div class="kv"><span>Stav (pro výpočet)</span><b>${r.stav||'–'}</b></div>
-      ${r.stav_sreality?`<div class="kv"><span>Stav (dle Sreality)</span><b>${r.stav_sreality}</b></div>`:''}
+      <div class="meter"><i style="left:${poz}%"></i></div>
+      <div class="meter-l"><span>levnější</span><span>odhad</span><span>dražší</span></div>
+      <div class="verdict-line ${vc}">${vt}${s!=null&&!r.cena_neuplna&&!podezrela(r)?` · rozdíl ${mil(Math.abs((r.trzni_hodnota||0)-(c||0)))}`:''}</div>
+    </div>
+
+    <div class="box"><h4>Základní údaje</h4>
+      <div class="kv"><span>Dispozice / plocha</span><b>${esc(r.dispozice||'–')} · ${r.plocha_m2||'–'} m²</b></div>
+      <div class="kv"><span>Cena za m²</span><b class="num">${fmt(r.cena_m2)} Kč</b></div>
+      <div class="kv"><span>Stav</span><b>${esc(r.stav_sreality||r.stav||'–')}</b></div>
       <div class="kv"><span>Rok výstavby</span><b>${r.rok_vystavby||'–'}</b></div>
-      <div class="kv"><span>Balkon / parkování</span><b>${r.balkon||'–'} / ${r.parkovani||'–'}${r.typ_parkovani?' ('+r.typ_parkovani+')':''}</b></div>
-      ${r.terasa_m2?`<div class="kv"><span>Terasa</span><b>${r.terasa_m2} m²</b></div>`:''}
-      ${r.lodzie_m2?`<div class="kv"><span>Lodžie</span><b>${r.lodzie_m2} m²</b></div>`:''}
-      ${r.balkon_m2?`<div class="kv"><span>Balkon (plocha)</span><b>${r.balkon_m2} m²</b></div>`:''}
-      <div class="kv"><span>Patro</span><b>${r.patro!=null?r.patro+(r.pater_celkem!=null?' / '+r.pater_celkem:''):'–'}</b></div>
-      <div class="kv"><span>Výtah</span><b>${r.vytah||'–'}</b></div>
+      <div class="kv"><span>Patro</span><b>${r.patro!=null?r.patro+(r.pater_celkem!=null?' z '+r.pater_celkem:''):'–'}${r.vytah?' · výtah: '+esc(r.vytah.toLowerCase()):''}</b></div>
+      <div class="kv"><span>Vlastnictví</span><b>${esc(r.vlastnictvi||'–')}${anuita?' · anuita '+anuita:''}</b></div>
+      <div class="kv"><span>Balkon / terasa</span><b>${esc(r.balkon||'–')}${r.terasa_m2?' · terasa '+r.terasa_m2+' m²':''}${r.lodzie_m2?' · lodžie '+r.lodzie_m2+' m²':''}</b></div>
+      <div class="kv"><span>Parkování</span><b>${esc(r.parkovani||'–')}${r.typ_parkovani?' ('+esc(r.typ_parkovani)+')':''}</b></div>
       <div class="kv"><span>Sklep</span><b>${r.sklep?('ano'+(r.sklep_m2?', '+r.sklep_m2+' m²':'')):(r.sklep===0?'ne':'–')}</b></div>
-      ${r.zahrada_m2?`<div class="kv"><span>Zahrada</span><b>${r.zahrada_m2} m²</b></div>`:''}
-      <div class="kv"><span>Typ stavby</span><b>${r.typ_stavby||'–'}</b></div>
-      <div class="kv"><span>Energetický štítek</span><b>${r.energeticky_stitek||'–'}</b></div>
-      ${r.datum_vlozeni?`<div class="kv"><span>Datum vložení</span><b>${r.datum_vlozeni}</b></div>`:''}
-      <div class="kv"><span>Vlastnictví</span><b>${r.vlastnictvi||'–'}</b></div>
-      ${r.vlastnictvi==='Družstevní'?`<div class="kv"><span>Anuita</span><b${r.anuita_stav==='nesplacena'?' style="color:var(--bad)"':''}>${
-        {nesplacena:'⚠️ nesplacená (viz popis inzerátu)', splacena:'splacená', neznamo:'zmíněna, stav nejasný z textu'}[r.anuita_stav] || 'v popisu neuvedeno'
-      }</b></div>`:''}
-      ${r.postoupeni_stav==='ano'?`<div class="kv"><span>⚠️ Postoupení</span><b style="color:var(--bad)">cena může být jen 1. splátka, ne celková cena — ověř popis</b></div>`:''}
-      <div class="kv"><span>Lokalita (skóre ${r.lokalita_skore??'–'})</span><b>${(r.lokalita||r.lokalita_auto||'–').split(',')[0]}</b></div>
-      ${r.lokalita_detail?`<div class="kv" style="font-size:11px;color:var(--mut)">${r.lokalita_detail}</div>`:''}
-      <div class="kv"><span>Zdroj</span><b>${r.source||'–'}</b></div>
-      ${r.url?`<div class="kv"><span>Odkaz</span><a href="${r.url}" target="_blank">otevřít inzerát</a></div>`:''}</div>
-    <div class="card"><h3>✏️ Upravit vstupy</h3>
-      <div class="kv"><span>Stav</span><select id="e-stav" style="width:60%">
-        <option value="">(automaticky)</option>
-        <option>Žádná / běžná údržba/Novostavba</option>
-        <option>Částečná rekonstrukce (kuchyň/koupelna ≤10 let)</option>
-        <option>Generální rekonstrukce (≤10 let)</option></select></div>
-      <div class="kv"><span>Rok výstavby</span><input id="e-rok" type="number" style="width:60%" value="${r.rok_vystavby??''}"></div>
-      <div class="kv"><span>Balkon</span><select id="e-balkon" style="width:60%">
-        <option value="">(automaticky)</option><option>Ano</option><option>Ne</option></select></div>
-      <div class="kv"><span>Parkování</span><select id="e-park" style="width:60%">
-        <option value="">(automaticky)</option><option>Ano</option><option>Ano 2*</option><option>Ne</option></select></div>
-      <div class="kv"><span>Lokalita</span><select id="e-lok" style="width:60%">
-        <option value="">(automaticky z matice)</option>
-        <option>u MHD / metro, u obchodu a služeb, tiché místo, parky v docházce</option>
-        <option>standardní dostupnost, běžná občanská vybavenost, žádné extrémy</option>
-        <option>daleko od MHD/služeb, hluk / bariéry (rušná silnice, železnice), horší pěší dostupnost</option></select></div>
-      <div class="kv"><span>Další koef (%)</span><input id="e-koef" type="number" step="0.5" style="width:60%" value="${r.dalsi_koef_pct||''}"></div>
-      <div class="kv"><span>Nájemné Kč/m²/měs</span><input id="e-najem" type="number" style="width:60%" value="${r.najem_m2_mesic||''}"></div>
-      <div class="kv"><span>Zákl. cena/m² (Kč)</span><input id="e-zakl" type="number" style="width:60%" value="${r.zakladni_cena_m2||''}"></div>
-      <button class="btn-p" style="margin-top:8px" onclick="ulozUpravu(${r.id})">💾 Uložit (přes GitHub)</button>
-      <div style="font-size:11px;color:var(--mut);margin-top:6px">Otevře se GitHub s předvyplněnou změnou — klikni „Submit new issue".
-      Robot ji do ~2 minut zapíše a přepočítá. Prázdné pole = automatická hodnota.</div></div>
-  </div></td>`;
-  tr.after(row);
-  // Předvyplnit selecty aktuální hodnotou nabídky (jinak by "Uložit" bez
-  // úprav poslal prázdno = smazal by existující ruční vstupy).
+      <div class="kv"><span>Energetický štítek</span><b>${esc(r.energeticky_stitek||'–')}</b></div>
+      <div class="kv"><span>Lokalita</span><b>${esc((r.lokalita||r.lokalita_auto||'–').split(',')[0])}</b></div>
+      ${r.datum_vlozeni?`<div class="kv"><span>Vloženo na Sreality</span><b>${esc(r.datum_vlozeni)}</b></div>`:''}
+    </div>
+
+    <div class="box"><h4>Srovnání ve čtvrti ${esc(r.ctvrt||'')}</h4>
+      <div class="kv"><span>Tento byt</span><b class="num">${fmt(r.cena_m2)} Kč/m²</b></div>
+      <div class="kv"><span>Průměr nabídek (${peers.length})</span><b class="num">${fmt(avg(cm2))} Kč/m²</b></div>
+      <div class="kv"><span>Skutečně prodané byty (cenová mapa)</span><b class="num">${pm?fmt(pm.cena_za_m2_czk)+' Kč/m²':'–'}</b></div>
+    </div>
+
+    <div class="box"><h4>Pronájem a hypotéka</h4>
+      <div class="kv"><span>Odhad nájmu</span><b class="num">${r.najem_mesicni?fmt(r.najem_mesicni)+' Kč / měsíc':'–'}</b></div>
+      <div class="kv"><span>Hrubý výnos z nájmu</span><b class="num">${pct(r.prosty_vynos_pct)}</b></div>
+      <div class="kv"><span>Splátka hypotéky (80 %, 30 let)</span><b class="num">${r.splatka_mesicni?fmt(r.splatka_mesicni)+' Kč / měsíc':'–'}</b></div>
+      <div class="kv"><span>Nájem pokryje splátku z</span><b class="num">${pct(r.pokryti_splatky_pct)}</b></div>
+      <div class="kv"><span>Celkový výnos za 20 let (IRR)</span><b class="num">${pct(r.celkovy_vynos_pct)}</b></div>
+    </div>
+
+    <details class="box"><summary>Jak jsme odhad spočítali</summary><div class="in num">
+      <div class="kv"><span>${r.v_zakladni_rucne?'Základní cena/m² (ručně)':'Cena prodaných bytů ve čtvrti'}</span><b>${fmt(r.v_zakladni_rucne?r.v_zakladni_cena_m2:r.v_cena_mapy_m2)} Kč/m²</b></div>
+      ${r.v_zakladni_rucne?'':`<div class="kv sub"><span>× úprava podle velikosti bytu</span><b>× ${(r.v_faktor_velikosti??1).toLocaleString('cs-CZ',{maximumFractionDigits:3})}</b></div>`}
+      <div class="kv sub"><span>lokalita</span><b>${pctS(r.v_koef_lokalita_pct)}</b></div>
+      <div class="kv sub"><span>stav</span><b>${pctS(r.v_koef_stav_pct)}</b></div>
+      <div class="kv sub"><span>stáří domu${r.v_vek_pouzity!=null?' ('+r.v_vek_pouzity+' let)':''}</span><b>${pctS(r.v_koef_vek_pct)}</b></div>
+      ${r.v_koef_dalsi_pct?`<div class="kv sub"><span>ruční úprava</span><b>${pctS(r.v_koef_dalsi_pct)}</b></div>`:''}
+      <div class="kv t"><span>= upravená cena/m²</span><b>${fmt(r.vysledna_cena_m2)} Kč/m²</b></div>
+      <div class="kv sub"><span>× plocha${r.v_plocha_efektivni&&r.v_plocha_efektivni!=r.plocha_m2?' (terasy a zahrada počítané sníženě)':''}</span><b>× ${r.v_plocha_efektivni||r.plocha_m2||'–'} m²</b></div>
+      ${r.priplatky_czk?`<div class="kv sub"><span>+ parkování${r.v_typ_parkovani?' ('+esc(r.v_typ_parkovani.toLowerCase())+')':''}</span><b>+ ${fmt(r.priplatky_czk)} Kč</b></div>`:''}
+      <div class="kv t"><span>= Odhad tržní hodnoty</span><b>${fmt(r.trzni_hodnota)} Kč</b></div>
+    </div></details>
+
+    <details class="box"><summary>Opravit údaje pro výpočet</summary><div class="in">
+      <div class="form-r"><label>Stav</label><select id="e-stav"><option value="">(automaticky)</option><option>Žádná / běžná údržba/Novostavba</option><option>Částečná rekonstrukce (kuchyň/koupelna ≤10 let)</option><option>Generální rekonstrukce (≤10 let)</option></select></div>
+      <div class="form-r"><label>Rok výstavby</label><input id="e-rok" type="number" value="${r.rok_vystavby??''}"></div>
+      <div class="form-r"><label>Balkon</label><select id="e-balkon"><option value="">(automaticky)</option><option>Ano</option><option>Ne</option></select></div>
+      <div class="form-r"><label>Parkování</label><select id="e-park"><option value="">(automaticky)</option><option>Ano</option><option>Ano 2*</option><option>Ne</option></select></div>
+      <div class="form-r"><label>Lokalita</label><select id="e-lok"><option value="">(automaticky)</option>
+        <option value="u MHD / metro, u obchodu a služeb, tiché místo, parky v docházce">výborná (MHD, služby, klid)</option>
+        <option value="standardní dostupnost, běžná občanská vybavenost, žádné extrémy">standardní</option>
+        <option value="daleko od MHD/služeb, hluk / bariéry (rušná silnice, železnice), horší pěší dostupnost">horší (hluk, daleko)</option></select></div>
+      <div class="form-r"><label>Další úprava (%)</label><input id="e-koef" type="number" step="0.5" value="${r.dalsi_koef_pct||''}"></div>
+      <div class="form-r"><label>Nájem Kč/m²/měs.</label><input id="e-najem" type="number" value="${r.najem_m2_mesic||''}"></div>
+      <div class="form-r"><label>Základní cena/m²</label><input id="e-zakl" type="number" value="${r.zakladni_cena_m2||''}"></div>
+      <button class="btn p" style="width:100%;margin-top:6px" onclick="ulozUpravu(${r.id})">Uložit opravu</button>
+      <div class="hint">Otevře se GitHub s předvyplněnou změnou, stačí kliknout „Submit new issue“. Do pár minut se byt přepočítá. Prázdné pole = automatická hodnota.</div>
+    </div></details>`;
   ['e-stav','e-balkon','e-park','e-lok'].forEach(id=>{
     const pole={'e-stav':'stav','e-balkon':'balkon','e-park':'parkovani','e-lok':'lokalita'}[id];
-    const el=row.querySelector('#'+id);
-    if(el&&r[pole])el.value=r[pole];
+    const el=$(id); if(el&&r[pole])el.value=r[pole];
   });
+  $('d-foot').innerHTML=`
+    <button class="btn" onclick="prepni(event,${r.id},'watchlist',${r.watchlist?0:1})">${r.watchlist?'★ Uloženo':'☆ Uložit'}</button>
+    <button class="btn" onclick="prepni(event,${r.id},'skryto',${r.skryto?0:1})">${r.skryto?'Zobrazit zpět':'Skrýt'}</button>
+    ${r.url?`<a class="btn p" href="${esc(r.url)}" target="_blank" rel="noopener">Otevřít inzerát ↗</a>`:''}`;
+  $('d-body').scrollTop=0;
+  otevriPanel('panel-detail');
 }
-// Sesbírá hodnoty z formuláře "Upravit vstupy" a otevře GitHub Issue.
-// Prázdné pole = vrátit na automatiku (viz scripts/aplikuj_upravu.py).
 function ulozUpravu(id){
-  const zmeny={
-    stav: document.getElementById('e-stav').value,
-    rok_vystavby: document.getElementById('e-rok').value,
-    balkon: document.getElementById('e-balkon').value,
-    parkovani: document.getElementById('e-park').value,
-    lokalita: document.getElementById('e-lok').value,
-    dalsi_koef_pct: document.getElementById('e-koef').value,
-    najem_m2_mesic: document.getElementById('e-najem').value,
-    zakladni_cena_m2: document.getElementById('e-zakl').value,
-  };
-  otevriIssue(id,zmeny);
+  otevriIssue(id,{
+    stav:$('e-stav').value, rok_vystavby:$('e-rok').value, balkon:$('e-balkon').value,
+    parkovani:$('e-park').value, lokalita:$('e-lok').value, dalsi_koef_pct:$('e-koef').value,
+    najem_m2_mesic:$('e-najem').value, zakladni_cena_m2:$('e-zakl').value,
+  });
 }
 boot();
 </script>
