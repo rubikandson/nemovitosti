@@ -1,0 +1,3 @@
+XLSX cenové mapy nájemného: https://mf.gov.cz/assets/attachments/2026-08-15_Cenova-mapa.xlsx
+Načteno 7630 řádků (celá ČR).
+Zapsáno 155 lokalit do data/najemne_mfcr.csv (Praha: 112 katastrálních území, Střední Čechy: 43 obcí z 43 na seznamu).
