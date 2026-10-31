@@ -8,6 +8,7 @@
 #   python -m src.trh stahnout --kategorie dum --kraje 10 --max-stranek 2
 #   python -m src.trh prehled                       # stav databáze
 #   python -m src.trh souhrn                        # připíše dnešek do data/trh_souhrn.csv
+#   python -m src.trh sync                          # pošle změny do Ocenito (Cloudflare D1)
 #
 # Záměrně ODDĚLENÉ od appky (src/db.py, src/sreality.py, src/valuation.py):
 # vlastní databáze data/trh.db, žádný zásah do tabulky listings ani do
@@ -19,6 +20,9 @@
 # na inzerát se jen odkazuje.
 import argparse
 import csv
+import hashlib
+import json
+import os
 import re
 import sqlite3
 import statistics
@@ -385,6 +389,63 @@ def souhrn(dnes: str | None = None):
     print(f"Souhrn za {dnes}: {len(radky)} řádků připsáno do {SOUHRN_CSV.name}.")
 
 
+# ---------------------------------------------------------------- Ocenito (D1)
+
+
+SYNC_POLE = ["hash_id", "kategorie", "podtyp", "nazev", "url", "obec", "cast_obce", "ulice",
+             "lat", "lon", "plocha_m2", "pozemek_m2", "cena_czk", "cena_prvni", "pocet_zmen_ceny",
+             "datum_prvni", "datum_zmizeni", "aktivni"]
+SYNC_DAVKA = 500
+
+
+def sync(max_radku: int = 40_000) -> int:
+    """Pošle do Ocenito (Cloudflare D1, endpoint /api/sync) jen nabídky, které
+    se od minulého odeslání změnily. Co už bylo odesláno, eviduje tabulka d1_stav
+    (otisk polí). D1 zdarma dovoluje 100 000 zapsaných řádků denně a každá
+    nabídka stojí ~2 zápisy (řádek + index), proto strop max_radku — zbytek
+    se pošle při dalším běhu. datum_posledni se neposílá, mění se každý den."""
+    url = os.environ.get("OCENITO_SYNC_URL", "https://ocenito.pages.dev/api/sync")
+    klic = os.environ.get("OCENITO_SYNC_KLIC")
+    if not klic:
+        print("Chybí OCENITO_SYNC_KLIC — synchronizaci přeskakuji.")
+        return 1
+    con = connect()
+    con.execute("CREATE TABLE IF NOT EXISTS d1_stav (hash_id TEXT PRIMARY KEY, otisk TEXT)")
+    odeslano = dict(con.execute("SELECT hash_id, otisk FROM d1_stav"))
+    zmeny = []
+    for r in con.execute(f"SELECT {', '.join(SYNC_POLE)} FROM nabidky"):
+        d = dict(r)
+        otisk = hashlib.sha1(json.dumps(d, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
+        if odeslano.get(d["hash_id"]) != otisk:
+            zmeny.append((d, otisk))
+    celkem = len(zmeny)
+    zmeny = zmeny[:max_radku]
+    print(f"Změněných nabídek {celkem}, posílám {len(zmeny)}.")
+    poslano = 0
+    for i in range(0, len(zmeny), SYNC_DAVKA):
+        davka = zmeny[i:i + SYNC_DAVKA]
+        for pokus in range(3):
+            try:
+                r = requests.post(url, json={"radky": [d for d, _ in davka]},
+                                  headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+                if r.status_code == 200:
+                    break
+                print(f"  dávka {i}: HTTP {r.status_code} {r.text[:150]}")
+            except requests.RequestException as ex:
+                print(f"  dávka {i}: {ex}")
+            time.sleep(5 * (pokus + 1))
+        else:
+            print("Synchronizace přerušena, zbytek se pošle příště.")
+            break
+        con.executemany("INSERT OR REPLACE INTO d1_stav VALUES (?, ?)",
+                        [(d["hash_id"], o) for d, o in davka])
+        con.commit()
+        poslano += len(davka)
+    con.close()
+    print(f"Odesláno {poslano} nabídek, zbývá {celkem - poslano}.")
+    return 0 if poslano == len(zmeny) else 1
+
+
 def main():
     ap = argparse.ArgumentParser(prog="trh", description="Databáze trhu nemovitostí (Sreality, celá ČR)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -395,6 +456,8 @@ def main():
     p.add_argument("--max-stranek", type=int, help="jen pro test: max. stránek na segment")
     sub.add_parser("prehled", help="vypíše stav databáze")
     sub.add_parser("souhrn", help="připíše dnešní agregát do data/trh_souhrn.csv")
+    p = sub.add_parser("sync", help="pošle změněné nabídky do Ocenito (Cloudflare D1)")
+    p.add_argument("--max", type=int, default=40_000, help="nejvýš nabídek za běh (limit zápisů D1)")
     a = ap.parse_args()
     if a.cmd == "stahnout":
         sys.exit(stahnout(a.kategorie, a.kraje, a.max_stranek))
@@ -402,6 +465,8 @@ def main():
         prehled()
     elif a.cmd == "souhrn":
         souhrn()
+    elif a.cmd == "sync":
+        sys.exit(sync(a.max))
 
 
 if __name__ == "__main__":

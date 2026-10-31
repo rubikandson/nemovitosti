@@ -56,6 +56,14 @@ jobs:
       - name: Stav databáze
         run: python -m src.trh prehled
 
+      - name: Synchronizace do Ocenito (Cloudflare D1)
+        # Posílá jen změny; když selže, databáze se nahraje stejně a zbytek
+        # dorovná příští běh (tabulka d1_stav v trh.db).
+        run: python -m src.trh sync
+        continue-on-error: true
+        env:
+          OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
+
       - name: Kontrola před nahráním
         # Nabídky se nikdy nemažou, jen deaktivují — menší databáze než
         # předtím znamená chybu (poškozené stažení), pak nic nepřepisovat.
