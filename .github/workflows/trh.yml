@@ -1,0 +1,102 @@
+name: Databáze trhu (celá ČR)
+
+# Denní snímek všech nabídek na prodej (byty, domy, pozemky) ze Sreality ve
+# 14 krajích s historií změn — viz src/trh.py. Běží dřív než „Denní
+# aktualizace dat" (update.yml, 4:00 UTC) a nezasahuje do ní.
+#
+# data/trh.db se NEUKLÁDÁ do gitu (každodenní binární commit by nafukoval
+# repozitář), ale jako příloha releasu „trh-db": trh.db.gz = aktuální,
+# trh-predchozi.db.gz = verze ze včerejška (záloha pro případ chyby).
+# Do gitu jde jen malý textový souhrn data/trh_souhrn.csv.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"   # každý den 2:00 UTC (4:00 v létě v ČR)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: databaze-trhu
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  RELEASE: trh-db
+
+jobs:
+  trh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalace závislostí
+        run: pip install requests
+
+      - name: Stažení dosavadní databáze z releasu
+        run: |
+          if gh release view "$RELEASE" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx trh.db.gz; then
+            gh release download "$RELEASE" -p trh.db.gz -D data --clobber
+            gunzip -f data/trh.db.gz
+            echo "PUVODNE=$(sqlite3 data/trh.db 'SELECT COUNT(*) FROM nabidky')" >> "$GITHUB_ENV"
+          else
+            echo "Release $RELEASE zatím nemá databázi — první běh, začínám prázdnou."
+            echo "PUVODNE=0" >> "$GITHUB_ENV"
+          fi
+
+      - name: Stažení nabídek ze Sreality
+        run: python -m src.trh stahnout 2>&1 | tee trh_log.txt
+
+      - name: Stav databáze
+        run: python -m src.trh prehled
+
+      - name: Kontrola před nahráním
+        # Nabídky se nikdy nemažou, jen deaktivují — menší databáze než
+        # předtím znamená chybu (poškozené stažení), pak nic nepřepisovat.
+        run: |
+          NYNI=$(sqlite3 data/trh.db 'SELECT COUNT(*) FROM nabidky')
+          echo "Nabídek v historii: předtím $PUVODNE, teď $NYNI"
+          if [ "$NYNI" -lt "$PUVODNE" ]; then
+            echo "Databáze se zmenšila — nenahrávám."
+            exit 1
+          fi
+
+      - name: Nahrání databáze do releasu
+        run: |
+          if ! gh release view "$RELEASE" >/dev/null 2>&1; then
+            gh release create "$RELEASE" --title "Databáze trhu" \
+              --notes "Automaticky aktualizovaná SQLite databáze nabídek (src/trh.py). Nestahujte ručně do repa — workflow trh.yml ji spravuje sám."
+          fi
+          if gh release view "$RELEASE" --json assets --jq '.assets[].name' | grep -qx trh.db.gz; then
+            gh release download "$RELEASE" -p trh.db.gz -O trh-predchozi.db.gz --clobber
+            gh release upload "$RELEASE" trh-predchozi.db.gz --clobber
+          fi
+          gzip -kf data/trh.db
+          gh release upload "$RELEASE" data/trh.db.gz trh_log.txt --clobber
+
+      - name: Denní souhrn do gitu
+        run: |
+          python -m src.trh souhrn
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/trh_souhrn.csv
+          if git diff --cached --quiet; then
+            echo "žádné změny k commitu"
+            exit 0
+          fi
+          git commit -m "Databáze trhu: souhrn $(date +%F)"
+          n=0
+          until git pull --rebase origin main && git push; do
+            n=$((n+1))
+            if [ "$n" -ge 8 ]; then
+              echo "Push selhal i po opakovaných pokusech."
+              exit 1
+            fi
+            sleep $((RANDOM % 8 + 2))
+          done

@@ -32,6 +32,9 @@ src/
   app.py             – webová aplikace (Flask API)
   static/index.html  – UI aplikace (filtry, tabulka, detail, peer group)
   main.py            – CLI vstupní bod
+  trh.py             – databáze trhu: denní snímek všech nabídek (byty, domy,
+                       pozemky) v celé ČR s historií změn ceny a zmizení;
+                       ODDĚLENÉ od appky (vlastní data/trh.db), viz níže
 scripts/
   mfcr_najemne.py           – stažení nájemního benchmarku z MFČR
   sreality_cenova_mapa.py   – měsíční aktualizace data/price_map.csv ze Sreality
@@ -40,6 +43,9 @@ scripts/
   update.yml           – denní import + ocenění + build (4:00 UTC)
   cenova_mapa.yml       – měsíční refresh cenové mapy + sazby hypotéky
                           (1. den v měsíci, 5:00 UTC)
+  trh.yml              – denní databáze trhu (2:00 UTC); data/trh.db je v
+                          releasu „trh-db", ne v gitu; do gitu jen
+                          data/trh_souhrn.csv
 ```
 
 ## Hard rules
@@ -86,3 +92,18 @@ aktualizováno 1× měsíčně z ČBA Hypomonitoru, záložní hodnota 4,2 % kdy
 soubor chybí/je neplatný, schváleno uživatelem 2026-07-14; 30 let, pokrytí
 splátky nájmem).
 Všechny konstanty: `src/valuation.py` (s odkazy na buňky původního sheetu).
+
+## Databáze trhu (`src/trh.py`, od 2026-10-31)
+Podklad pro budoucí ocenění podle adresy. Každý den stáhne ze Sreality všechny
+nabídky na prodej (byty, domy, pozemky) ve 14 krajích a zapíše:
+`nabidky` (fakta o nabídce, GPS, první/poslední den, aktivní/zmizelá),
+`udalosti` (nova / zmena_ceny / zmizela / znovu), `behy` (kontrola úplnosti).
+Pravidla: nic se nemaže; zmizelé se deaktivují jen po kompletním průchodu
+kraje (≥ 90 % z počtu hlášeného API); API neumí offset nad 9 900, kraj nad tuto
+hranici se označí jako neúplný. Fotky ani texty inzerátů se neukládají.
+Nezasahuje do `listings` ani do oceňovacího modelu.
+```
+python -m src.trh stahnout [--kategorie byt dum pozemek] [--kraje 10 11] [--max-stranek N]
+python -m src.trh prehled
+python -m src.trh souhrn
+```
