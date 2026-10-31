@@ -413,7 +413,8 @@ def sync(max_radku: int = 40_000) -> int:
     con.execute("CREATE TABLE IF NOT EXISTS d1_stav (hash_id TEXT PRIMARY KEY, otisk TEXT)")
     odeslano = dict(con.execute("SELECT hash_id, otisk FROM d1_stav"))
     zmeny = []
-    for r in con.execute(f"SELECT {', '.join(SYNC_POLE)} FROM nabidky"):
+    # pozemky napřed: do Ocenito se poprvé nahrály jen byty a domy (limit zápisů D1)
+    for r in con.execute(f"SELECT {', '.join(SYNC_POLE)} FROM nabidky ORDER BY kategorie != 'pozemek'"):
         d = dict(r)
         otisk = hashlib.sha1(json.dumps(d, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
         if odeslano.get(d["hash_id"]) != otisk:
