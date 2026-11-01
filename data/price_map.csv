@@ -1,145 +1,144 @@
 klic,ctvrt,cena_za_m2_czk,pocet_transakci,najem_m2_mesic,kraj
-hostivice,Hostivice,138164,134,,Středočeský
-černošice,Černošice,137600,25,,Středočeský
-roztoky,Roztoky,132642,42,,Středočeský
-říčany,Říčany,121413,46,,Středočeský
-jesenice,Jesenice,116631,38,,Středočeský
-rudná,Rudná,114250,12,,Středočeský
-brandýs_nad_labem_stará_boleslav,Brandýs nad Labem-Stará Boleslav,110479,246,,Středočeský
-český_brod,Český Brod,108297,195,,Středočeský
-unhošť,Unhošť,106652,23,,Středočeský
-úvaly,Úvaly,103666,12,,Středočeský
-poděbrady,Poděbrady,102298,67,,Středočeský
+hostivice,Hostivice,138296,128,,Středočeský
+černošice,Černošice,137791,24,,Středočeský
+roztoky,Roztoky,132275,40,,Středočeský
+říčany,Říčany,124347,46,,Středočeský
+rudná,Rudná,118777,9,,Středočeský
+brandýs_nad_labem_stará_boleslav,Brandýs nad Labem-Stará Boleslav,109472,235,,Středočeský
+český_brod,Český Brod,108463,203,,Středočeský
+unhošť,Unhošť,105863,22,,Středočeský
+jesenice,Jesenice,104600,40,,Středočeský
+poděbrady,Poděbrady,101739,69,,Středočeský
+úvaly,Úvaly,100857,14,,Středočeský
 nové_strašecí,Nové Strašecí,100000,18,,Středočeský
-lysá_nad_labem,Lysá nad Labem,98230,26,,Středočeský
-beroun,Beroun,96523,193,,Středočeský
-čelákovice,Čelákovice,96102,39,,Středočeský
-mníšek_pod_brdy,Mníšek pod Brdy,95969,33,,Středočeský
-kralupy_nad_vltavou,Kralupy nad Vltavou,95343,169,,Středočeský
-odolena_voda,Odolena Voda,95218,32,,Středočeský
-slaný,Slaný,93522,111,,Středočeský
-kladno,Kladno,93112,936,,Středočeský
-hořovice,Hořovice,90276,123,,Středočeský
-benešov,Benešov,89887,177,,Středočeský
-nymburk,Nymburk,89670,85,,Středočeský
-dobříš,Dobříš,88985,69,,Středočeský
-neratovice,Neratovice,88545,33,,Středočeský
-králův_dvůr,Králův Dvůr,88090,22,,Středočeský
-benátky_nad_jizerou,Benátky nad Jizerou,87509,53,,Středočeský
+beroun,Beroun,96917,194,,Středočeský
+čelákovice,Čelákovice,96538,39,,Středočeský
+lysá_nad_labem,Lysá nad Labem,96510,49,,Středočeský
+odolena_voda,Odolena Voda,95903,31,,Středočeský
+mníšek_pod_brdy,Mníšek pod Brdy,95878,33,,Středočeský
+kralupy_nad_vltavou,Kralupy nad Vltavou,95533,180,,Středočeský
+kladno,Kladno,94245,923,,Středočeský
+slaný,Slaný,93184,114,,Středočeský
+nymburk,Nymburk,93141,85,,Středočeský
+dobříš,Dobříš,90904,63,,Středočeský
+hořovice,Hořovice,90442,131,,Středočeský
+neratovice,Neratovice,90029,34,,Středočeský
+benešov,Benešov,89125,183,,Středočeský
 stochov,Stochov,87105,19,,Středočeský
-mělník,Mělník,83702,37,,Středočeský
-kolín,Kolín,83510,245,,Středočeský
-mladá_boleslav,Mladá Boleslav,81883,396,,Středočeský
-milovice,Milovice,80826,161,,Středočeský
-jílové_u_prahy,Jílové u Prahy,79666,15,,Středočeský
+králův_dvůr,Králův Dvůr,86318,22,,Středočeský
+kolín,Kolín,84633,243,,Středočeský
+mělník,Mělník,84108,37,,Středočeský
+benátky_nad_jizerou,Benátky nad Jizerou,83647,34,,Středočeský
+mladá_boleslav,Mladá Boleslav,82315,402,,Středočeský
+rakovník,Rakovník,80953,64,,Středočeský
 kosmonosy,Kosmonosy,79625,8,,Středočeský
-rakovník,Rakovník,79573,68,,Středočeský
-kutná_hora,Kutná Hora,76850,160,,Středočeský
-mnichovo_hradiště,Mnichovo Hradiště,75909,33,,Středočeský
-bakov_nad_jizerou,Bakov nad Jizerou,71400,5,,Středočeský
-příbram,Příbram,70780,296,,Středočeský
-týnec_nad_sázavou,Týnec nad Sázavou,69304,23,,Středočeský
-sedlčany,Sedlčany,65181,22,,Středočeský
-vlašim,Vlašim,64618,55,,Středočeský
-čáslav,Čáslav,62446,65,,Středočeský
-josefov,Josefov,322666,6,,Praha
-staré_město,Staré Město,222013,73,,Praha
-třebonice,Třebonice,201166,30,,Praha
-malá_strana,Malá Strana,198781,32,,Praha
-nové_město,Nové Město,193715,309,,Praha
-vinohrady,Vinohrady,184929,368,,Praha
-karlín,Karlín,181087,137,,Praha
-velká_chuchle,Velká Chuchle,181000,2,,Praha
-jinonice,Jinonice,173300,50,,Praha
+jílové_u_prahy,Jílové u Prahy,79142,14,,Středočeský
+mnichovo_hradiště,Mnichovo Hradiště,76428,35,,Středočeský
+kutná_hora,Kutná Hora,75777,144,,Středočeský
+milovice,Milovice,72692,208,,Středočeský
+příbram,Příbram,71541,290,,Středočeský
+týnec_nad_sázavou,Týnec nad Sázavou,70913,23,,Středočeský
+bakov_nad_jizerou,Bakov nad Jizerou,64714,7,,Středočeský
+sedlčany,Sedlčany,64700,20,,Středočeský
+vlašim,Vlašim,64358,53,,Středočeský
+čáslav,Čáslav,63625,64,,Středočeský
+josefov,Josefov,382555,9,,Praha
+staré_město,Staré Město,223459,74,,Praha
+třebonice,Třebonice,202354,31,,Praha
+velká_chuchle,Velká Chuchle,201000,1,,Praha
+nové_město,Nové Město,195427,302,,Praha
+malá_strana,Malá Strana,195193,31,,Praha
+vinohrady,Vinohrady,190947,397,,Praha
+karlín,Karlín,180964,139,,Praha
+jinonice,Jinonice,172269,52,,Praha
 hradčany,Hradčany,170500,4,,Praha
-dolní_chabry,Dolní Chabry,167666,108,,Praha
-dejvice,Dejvice,167145,103,350,Praha
-holešovice,Holešovice,166915,319,,Praha
-smíchov,Smíchov,166870,395,,Praha
-radlice,Radlice,166164,182,302,Praha
-košíře,Košíře,165052,228,,Praha
-bubeneč,Bubeneč,162719,114,,Praha
-liboc,Liboc,161250,20,,Praha
-žižkov,Žižkov,160718,771,,Praha
-vyšehrad,Vyšehrad,160363,11,,Praha
-břevnov,Břevnov,159505,186,,Praha
-veleslavín,Veleslavín,158583,48,,Praha
-suchdol,Suchdol,157562,16,,Praha
+dejvice,Dejvice,168386,106,350,Praha
+holešovice,Holešovice,168035,308,,Praha
+smíchov,Smíchov,168024,403,,Praha
+vyšehrad,Vyšehrad,166636,11,,Praha
+košíře,Košíře,166395,225,,Praha
+radlice,Radlice,165467,182,302,Praha
+liboc,Liboc,164388,18,,Praha
+bubeneč,Bubeneč,164266,109,,Praha
+dolní_chabry,Dolní Chabry,162481,189,,Praha
+ďáblice,Ďáblice,161555,9,,Praha
+žižkov,Žižkov,160492,750,,Praha
+vršovice,Vršovice,157845,408,,Praha
+veleslavín,Veleslavín,157686,51,,Praha
+hodkovičky,Hodkovičky,157609,41,,Praha
+suchdol,Suchdol,156266,15,,Praha
 slivenec,Slivenec,156000,3,,Praha
-nusle,Nusle,155642,445,,Praha
-vršovice,Vršovice,155063,407,,Praha
-točná,Točná,155000,1,,Praha
-řeporyje,Řeporyje,154710,138,,Praha
-hodkovičky,Hodkovičky,154695,46,,Praha
-střešovice,Střešovice,153500,22,,Praha
-sobín,Sobín,152857,7,,Praha
-libeň,Libeň,152250,320,,Praha
-podolí,Podolí,151475,82,,Praha
-hloubětín,Hloubětín,151154,523,,Praha
-uhříněves,Uhříněves,150988,85,,Praha
-hrdlořezy,Hrdlořezy,150919,99,,Praha
-strašnice,Strašnice,150690,310,,Praha
-vokovice,Vokovice,149453,97,,Praha
-lysolaje,Lysolaje,148159,44,,Praha
-troja,Troja,147663,113,,Praha
-dolní_měcholupy,Dolní Měcholupy,147394,38,,Praha
-ďáblice,Ďáblice,147250,8,,Praha
-krč,Krč,147174,201,,Praha
-vysočany,Vysočany,146997,730,,Praha
-michle,Michle,145401,152,,Praha
-střížkov,Střížkov,144643,143,,Praha
-ruzyně,Ruzyně,144500,56,,Praha
-kbely,Kbely,144300,30,,Praha
-vinoř,Vinoř,143833,12,,Praha
-motol,Motol,143541,24,,Praha
-malešice,Malešice,143368,76,,Praha
-hlubočepy,Hlubočepy,142976,559,,Praha
-kyje,Kyje,142711,59,,Praha
-háje,Háje,142206,150,,Praha
+řeporyje,Řeporyje,154757,140,,Praha
+libeň,Libeň,154166,343,,Praha
+nusle,Nusle,153015,451,,Praha
+sobín,Sobín,152400,5,,Praha
+střešovice,Střešovice,152296,27,,Praha
+pitkovice,Pitkovice,151625,40,,Praha
+uhříněves,Uhříněves,151617,89,,Praha
+břevnov,Břevnov,151329,182,,Praha
+hloubětín,Hloubětín,151134,514,,Praha
+hrdlořezy,Hrdlořezy,150979,97,,Praha
+strašnice,Strašnice,150907,312,,Praha
+podolí,Podolí,150463,82,,Praha
+vokovice,Vokovice,150041,96,,Praha
+vysočany,Vysočany,149732,606,,Praha
+lochkov,Lochkov,149000,18,,Praha
+lysolaje,Lysolaje,148777,45,,Praha
+krč,Krč,148260,200,,Praha
+michle,Michle,147055,180,,Praha
+ruzyně,Ruzyně,146944,54,,Praha
+troja,Troja,146000,104,,Praha
+hlubočepy,Hlubočepy,144895,517,,Praha
+kbely,Kbely,144800,25,,Praha
+malešice,Malešice,144197,81,,Praha
+kyje,Kyje,143877,57,,Praha
+libuš,Libuš,142913,23,,Praha
+hostavice,Hostavice,142280,57,,Praha
 dolní_počernice,Dolní Počernice,141500,10,,Praha
-chodov,Chodov,140858,496,,Praha
-hostavice,Hostavice,140828,70,,Praha
-štěrboholy,Štěrboholy,139857,7,,Praha
-braník,Braník,139766,133,,Praha
-libuš,Libuš,139318,22,,Praha
-modřany,Modřany,139275,389,,Praha
-horní_měcholupy,Horní Měcholupy,138863,205,,Praha
-pitkovice,Pitkovice,138793,29,,Praha
-čimice,Čimice,138347,23,,Praha
-písnice,Písnice,137794,39,,Praha
-záběhlice,Záběhlice,137745,302,,Praha
-stodůlky,Stodůlky,137665,430,,Praha
-újezd_u_průhonic,Újezd u Průhonic,137470,17,,Praha
-letňany,Letňany,137092,325,,Praha
-lochkov,Lochkov,137000,6,,Praha
+háje,Háje,141339,153,,Praha
+chodov,Chodov,141326,503,,Praha
+braník,Braník,141246,130,,Praha
+modřany,Modřany,140921,380,,Praha
+písnice,Písnice,140511,43,,Praha
+dolní_měcholupy,Dolní Měcholupy,140000,35,,Praha
+štěrboholy,Štěrboholy,140000,7,,Praha
+horní_měcholupy,Horní Měcholupy,139348,201,,Praha
+stodůlky,Stodůlky,138330,421,,Praha
+letňany,Letňany,137938,339,,Praha
+prosek,Prosek,137453,152,,Praha
+záběhlice,Záběhlice,137160,311,,Praha
 sedlec,Sedlec,137000,2,,Praha
-prosek,Prosek,136886,150,,Praha
-kunratice,Kunratice,136650,20,,Praha
-kolovraty,Kolovraty,135333,3,,Praha
-čakovice,Čakovice,134848,86,,Praha
-kamýk,Kamýk,134224,223,,Praha
-komořany,Komořany,133500,4,,Praha
-bohnice,Bohnice,133341,129,,Praha
-radotín,Radotín,132611,18,,Praha
-dubeč,Dubeč,132437,16,,Praha
-kobylisy,Kobylisy,132041,170,,Praha
-hostivař,Hostivař,131545,240,,Praha
-cholupice,Cholupice,129333,3,,Praha
-zličín,Zličín,129289,83,,Praha
+kunratice,Kunratice,136105,19,,Praha
+čakovice,Čakovice,135882,85,,Praha
+čimice,Čimice,135708,24,,Praha
+kamýk,Kamýk,134857,232,,Praha
+radotín,Radotín,134176,17,,Praha
+zbraslav,Zbraslav,134153,65,,Praha
+vinoř,Vinoř,133250,12,,Praha
+komořany,Komořany,133200,5,,Praha
+bohnice,Bohnice,132849,126,,Praha
+cholupice,Cholupice,132500,4,,Praha
+kolovraty,Kolovraty,131750,4,,Praha
+újezd_u_průhonic,Újezd u Průhonic,130941,17,,Praha
+zličín,Zličín,130906,86,,Praha
+hostivař,Hostivař,130720,351,,Praha
 běchovice,Běchovice,129000,3,,Praha
-černý_most,Černý Most,128878,148,,Praha
+kobylisy,Kobylisy,128124,177,,Praha
+černý_most,Černý Most,128020,144,,Praha
 třeboradice,Třeboradice,128000,1,,Praha
-zbraslav,Zbraslav,126878,41,,Praha
+dubeč,Dubeč,127357,14,,Praha
 koloděje,Koloděje,126333,3,,Praha
-šeberov,Šeberov,122000,1,,Praha
-řepy,Řepy,121919,124,,Praha
-horní_počernice,Horní Počernice,121914,47,,Praha
-petrovice,Petrovice,117441,34,,Praha
-klánovice,Klánovice,116000,4,,Praha
-újezd_nad_lesy,Újezd nad Lesy,114600,25,,Praha
-lhotka,Lhotka,113500,20,,Praha
+horní_počernice,Horní Počernice,123875,48,,Praha
+řepy,Řepy,122614,122,,Praha
+královice,Královice,119000,1,,Praha
+střížkov,Střížkov,116253,193,,Praha
+újezd_nad_lesy,Újezd nad Lesy,115041,24,,Praha
+lhotka,Lhotka,114650,20,,Praha
+petrovice,Petrovice,114628,35,,Praha
+klánovice,Klánovice,113000,3,,Praha
 nebušice,Nebušice,111000,3,,Praha
 satalice,Satalice,111000,1,,Praha
 miškovice,Miškovice,102750,4,,Praha
-benice,Benice,99000,1,,Praha
+lipence,Lipence,99000,1,,Praha
 přední_kopanina,Přední Kopanina,98000,1,,Praha
+motol,Motol,80226,53,,Praha
