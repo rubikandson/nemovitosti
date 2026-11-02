@@ -472,51 +472,68 @@ def _kvantily(hodnoty):
     return {"p25": round(k(0.25)), "median": round(k(0.5)), "p75": round(k(0.75))}
 
 
+REKREACNI_DOMY = ("Chata", "Chalupa", "Zemědělská usedlost", "Památka/jiné")
+
+
+def _statistika(v: list, pred30: str) -> dict:
+    """Ceny z nabídek jedné obce nebo kraje (aktivní + zmizelé za 30 dní)."""
+    akt = [x for x in v if x["aktivni"]]
+    def m2(rows, pole):
+        return [x["cena_czk"] / x[pole] for x in rows if x["cena_czk"] and x[pole]]
+    byty = [x for x in akt if x["kategorie"] == "byt"]
+    domy = [x for x in akt if x["kategorie"] == "dum" and x["podtyp"] not in REKREACNI_DOMY]
+    pozemky = [x for x in akt if x["kategorie"] == "pozemek" and x["podtyp"] in STAVEBNI_POZEMEK]
+    dispozice = {}
+    for x in byty:
+        dispozice.setdefault(x["podtyp"] or "jiné", []).append(x)
+    polohy = [x for x in akt if x["lat"] and x["lon"]]
+    stred = None
+    if polohy:  # medián souřadnic je odolný proti chybně umístěným inzerátům
+        stred = [round(_kvantily([x["lat"] * 1e5 for x in polohy])["median"] / 1e5, 4),
+                 round(_kvantily([x["lon"] * 1e5 for x in polohy])["median"] / 1e5, 4)]
+    return {
+        "byty": {"pocet": len(byty), "cena_m2": _kvantily(m2(byty, "plocha_m2")),
+                 "cena": _kvantily([x["cena_czk"] for x in byty if x["cena_czk"]]),
+                 "dispozice": {d: {"pocet": len(r), "cena": _kvantily([x["cena_czk"] for x in r if x["cena_czk"]]),
+                                   "cena_m2": _kvantily(m2(r, "plocha_m2"))}
+                               for d, r in sorted(dispozice.items()) if len(r) >= 3}},
+        "domy": {"pocet": len(domy), "cena": _kvantily([x["cena_czk"] for x in domy if x["cena_czk"]]),
+                 "cena_m2": _kvantily(m2(domy, "plocha_m2")),
+                 "pozemek": _kvantily([x["pozemek_m2"] for x in domy if x["pozemek_m2"]])},
+        "pozemky": {"pocet": len(pozemky), "cena_m2": _kvantily(m2(pozemky, "pozemek_m2"))},
+        "pohyb_30_dni": {"nove": sum(1 for x in v if x["datum_prvni"] >= pred30 and x["datum_prvni"] > "2026-10-31"),
+                         "zmizele": sum(1 for x in v if not x["aktivni"])},
+        "aktivnich": len(akt),
+        "stred": stred,
+    }
+
+
 def statistiky_obci() -> list[dict]:
-    """Ceny podle obcí pro SEO stránky ocenito.cz/ceny-nemovitosti/<obec>.
-    Jen obce s aspoň MIN_NABIDEK_OBCE aktivními nabídkami. Praha se počítá
-    jako celek (v datech je rozdělená po okresech Praha 1–10). Stejnojmenné
-    obce dostanou do adresy i okres."""
+    """Ceny podle obcí a krajů pro ocenito.cz/ceny-nemovitosti (stránky obcí
+    a mapa). Jen obce s aspoň MIN_NABIDEK_OBCE aktivními nabídkami. Praha se
+    počítá jako celek (v datech je rozdělená po okresech Praha 1–10).
+    Stejnojmenné obce dostanou do adresy i okres. Kraje mají slug „kraj-…“."""
     con = connect()
-    dnes = date.today()
-    pred30 = date.fromordinal(dnes.toordinal() - 30).isoformat()
+    pred30 = date.fromordinal(date.today().toordinal() - 30).isoformat()
     radky = con.execute(
         "SELECT obec, CASE WHEN obec = 'Praha' THEN 'Praha' ELSE okres END AS okres, kraj, kategorie, podtyp, "
-        "cena_czk, plocha_m2, pozemek_m2, aktivni, datum_prvni, datum_zmizeni FROM nabidky "
+        "cena_czk, plocha_m2, pozemek_m2, lat, lon, aktivni, datum_prvni, datum_zmizeni FROM nabidky "
         "WHERE obec IS NOT NULL AND (aktivni = 1 OR datum_zmizeni >= ?)", (pred30,)).fetchall()
     con.close()
-    obce = {}
+    obce, kraje = {}, {}
     for r in radky:
         obce.setdefault((r["obec"], r["okres"]), []).append(r)
+        kraje.setdefault(r["kraj"], []).append(r)
     vybrane = {k: v for k, v in obce.items() if sum(x["aktivni"] for x in v) >= MIN_NABIDEK_OBCE}
     jmena = [o for o, _ in vybrane]
     out = []
     for (obec, okres), v in vybrane.items():
-        akt = [x for x in v if x["aktivni"]]
-        def m2(rows, pole):
-            return [x["cena_czk"] / x[pole] for x in rows if x["cena_czk"] and x[pole]]
-        byty = [x for x in akt if x["kategorie"] == "byt"]
-        domy = [x for x in akt if x["kategorie"] == "dum" and x["podtyp"] not in ("Chata", "Chalupa", "Zemědělská usedlost", "Památka/jiné")]
-        pozemky = [x for x in akt if x["kategorie"] == "pozemek" and x["podtyp"] in STAVEBNI_POZEMEK]
-        dispozice = {}
-        for x in byty:
-            dispozice.setdefault(x["podtyp"] or "jiné", []).append(x)
-        data = {
-            "byty": {"pocet": len(byty), "cena_m2": _kvantily(m2(byty, "plocha_m2")),
-                     "cena": _kvantily([x["cena_czk"] for x in byty if x["cena_czk"]]),
-                     "dispozice": {d: {"pocet": len(r), "cena": _kvantily([x["cena_czk"] for x in r if x["cena_czk"]]),
-                                       "cena_m2": _kvantily(m2(r, "plocha_m2"))}
-                                   for d, r in sorted(dispozice.items()) if len(r) >= 3}},
-            "domy": {"pocet": len(domy), "cena": _kvantily([x["cena_czk"] for x in domy if x["cena_czk"]]),
-                     "cena_m2": _kvantily(m2(domy, "plocha_m2")),
-                     "pozemek": _kvantily([x["pozemek_m2"] for x in domy if x["pozemek_m2"]])},
-            "pozemky": {"pocet": len(pozemky), "cena_m2": _kvantily(m2(pozemky, "pozemek_m2"))},
-            "pohyb_30_dni": {"nove": sum(1 for x in v if x["datum_prvni"] >= pred30 and x["datum_prvni"] > "2026-10-31"),
-                             "zmizele": sum(1 for x in v if not x["aktivni"])},
-            "aktivnich": len(akt),
-        }
         slug = _slug(obec) if jmena.count(obec) == 1 else _slug(f"{obec} {okres}")
-        out.append({"slug": slug, "obec": obec, "okres": okres, "kraj": v[0]["kraj"], "data": data})
+        out.append({"slug": slug, "obec": obec, "okres": okres, "kraj": v[0]["kraj"], "data": _statistika(v, pred30)})
+    for kraj, v in kraje.items():
+        if kraj:
+            out.append({"slug": "kraj-" + _slug(kraj), "obec": kraj, "okres": None, "kraj": kraj,
+                        "data": _statistika(v, pred30)})
     return out
 
 
