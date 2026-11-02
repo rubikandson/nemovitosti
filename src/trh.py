@@ -114,7 +114,9 @@ def _m2(text: str, za: str | None = None):
         if i < 0:
             return None
         s = s[i + len(za):]
-    m = re.search(r"(\d[\d ]*(?:[.,]\d+)?)\s*m²", s)
+    # Tisíce jen jako skupiny po třech číslicích („1 250 m²“) a číslo nesmí
+    # navazovat na dispozici: v „bytu 1+1 37 m²“ je plocha 37, ne 137.
+    m = re.search(r"(?<![\d+.,])(\d{1,3}(?: \d{3})+|\d+(?:[.,]\d+)?)\s*m²", s)
     if not m:
         return None
     try:
@@ -444,7 +446,87 @@ def sync(max_radku: int = 40_000) -> int:
         poslano += len(davka)
     con.close()
     print(f"Odesláno {poslano} nabídek, zbývá {celkem - poslano}.")
+    try:
+        sync_statistik(url, klic)
+    except requests.RequestException as ex:
+        print(f"Statistiky obcí se nepodařilo odeslat: {ex}")
     return 0 if poslano == len(zmeny) else 1
+
+
+MIN_NABIDEK_OBCE = 25
+# Podtypy pozemků, které na stránce obce počítáme jako „stavební“.
+STAVEBNI_POZEMEK = ("Bydlení",)
+
+
+def _slug(text: str) -> str:
+    import unicodedata
+    t = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+
+
+def _kvantily(hodnoty):
+    h = sorted(hodnoty)
+    if not h:
+        return None
+    k = lambda q: h[min(len(h) - 1, max(0, round(q * (len(h) - 1))))]
+    return {"p25": round(k(0.25)), "median": round(k(0.5)), "p75": round(k(0.75))}
+
+
+def statistiky_obci() -> list[dict]:
+    """Ceny podle obcí pro SEO stránky ocenito.cz/ceny-nemovitosti/<obec>.
+    Jen obce s aspoň MIN_NABIDEK_OBCE aktivními nabídkami. Praha se počítá
+    jako celek (v datech je rozdělená po okresech Praha 1–10). Stejnojmenné
+    obce dostanou do adresy i okres."""
+    con = connect()
+    dnes = date.today()
+    pred30 = date.fromordinal(dnes.toordinal() - 30).isoformat()
+    radky = con.execute(
+        "SELECT obec, CASE WHEN obec = 'Praha' THEN 'Praha' ELSE okres END AS okres, kraj, kategorie, podtyp, "
+        "cena_czk, plocha_m2, pozemek_m2, aktivni, datum_prvni, datum_zmizeni FROM nabidky "
+        "WHERE obec IS NOT NULL AND (aktivni = 1 OR datum_zmizeni >= ?)", (pred30,)).fetchall()
+    con.close()
+    obce = {}
+    for r in radky:
+        obce.setdefault((r["obec"], r["okres"]), []).append(r)
+    vybrane = {k: v for k, v in obce.items() if sum(x["aktivni"] for x in v) >= MIN_NABIDEK_OBCE}
+    jmena = [o for o, _ in vybrane]
+    out = []
+    for (obec, okres), v in vybrane.items():
+        akt = [x for x in v if x["aktivni"]]
+        def m2(rows, pole):
+            return [x["cena_czk"] / x[pole] for x in rows if x["cena_czk"] and x[pole]]
+        byty = [x for x in akt if x["kategorie"] == "byt"]
+        domy = [x for x in akt if x["kategorie"] == "dum" and x["podtyp"] not in ("Chata", "Chalupa", "Zemědělská usedlost", "Památka/jiné")]
+        pozemky = [x for x in akt if x["kategorie"] == "pozemek" and x["podtyp"] in STAVEBNI_POZEMEK]
+        dispozice = {}
+        for x in byty:
+            dispozice.setdefault(x["podtyp"] or "jiné", []).append(x)
+        data = {
+            "byty": {"pocet": len(byty), "cena_m2": _kvantily(m2(byty, "plocha_m2")),
+                     "cena": _kvantily([x["cena_czk"] for x in byty if x["cena_czk"]]),
+                     "dispozice": {d: {"pocet": len(r), "cena": _kvantily([x["cena_czk"] for x in r if x["cena_czk"]]),
+                                       "cena_m2": _kvantily(m2(r, "plocha_m2"))}
+                                   for d, r in sorted(dispozice.items()) if len(r) >= 3}},
+            "domy": {"pocet": len(domy), "cena": _kvantily([x["cena_czk"] for x in domy if x["cena_czk"]]),
+                     "cena_m2": _kvantily(m2(domy, "plocha_m2")),
+                     "pozemek": _kvantily([x["pozemek_m2"] for x in domy if x["pozemek_m2"]])},
+            "pozemky": {"pocet": len(pozemky), "cena_m2": _kvantily(m2(pozemky, "pozemek_m2"))},
+            "pohyb_30_dni": {"nove": sum(1 for x in v if x["datum_prvni"] >= pred30 and x["datum_prvni"] > "2026-10-31"),
+                             "zmizele": sum(1 for x in v if not x["aktivni"])},
+            "aktivnich": len(akt),
+        }
+        slug = _slug(obec) if jmena.count(obec) == 1 else _slug(f"{obec} {okres}")
+        out.append({"slug": slug, "obec": obec, "okres": okres, "kraj": v[0]["kraj"], "data": data})
+    return out
+
+
+def sync_statistik(url: str, klic: str) -> None:
+    stat = statistiky_obci()
+    for i in range(0, len(stat), 100):
+        r = requests.post(url, json={"statistiky": stat[i:i + 100]},
+                          headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+        r.raise_for_status()
+    print(f"Statistiky obcí odeslány: {len(stat)}.")
 
 
 def main():
