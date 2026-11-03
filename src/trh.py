@@ -454,6 +454,8 @@ def sync(max_radku: int = 40_000) -> int:
 
 
 MIN_NABIDEK_OBCE = 25
+# Čtvrti (část obce ze Sreality) dostanou vlastní stránku jen ve velkých městech.
+MIN_NABIDEK_MESTA_S_CASTMI = 300
 # Podtypy pozemků, které na stránce obce počítáme jako „stavební“.
 STAVEBNI_POZEMEK = ("Bydlení",)
 
@@ -534,6 +536,10 @@ def statistiky_obci() -> list[dict]:
         "SELECT obec, CASE WHEN obec = 'Praha' THEN 'Praha' ELSE okres END AS okres, kraj, kategorie, podtyp, "
         "cena_czk, plocha_m2, pozemek_m2, lat, lon, aktivni, datum_prvni, datum_zmizeni FROM nabidky "
         "WHERE obec IS NOT NULL AND (aktivni = 1 OR datum_zmizeni >= ?)", (pred30,)).fetchall()
+    radky_casti = con.execute(
+        "SELECT obec, okres, cast_obce, kraj, kategorie, podtyp, cena_czk, plocha_m2, pozemek_m2, lat, lon, aktivni, "
+        "datum_prvni, datum_zmizeni FROM nabidky WHERE obec IS NOT NULL AND cast_obce IS NOT NULL AND cast_obce != '' "
+        "AND cast_obce != obec AND (aktivni = 1 OR datum_zmizeni >= ?)", (pred30,)).fetchall()
     con.close()
     obce, kraje = {}, {}
     for r in radky:
@@ -545,6 +551,25 @@ def statistiky_obci() -> list[dict]:
     for (obec, okres), v in vybrane.items():
         slug = _slug(obec) if jmena.count(obec) == 1 else _slug(f"{obec} {okres}")
         out.append({"slug": slug, "obec": obec, "okres": okres, "kraj": v[0]["kraj"], "data": _statistika(v, pred30)})
+    # čtvrti velkých měst: slug „praha-smichov“, v datech odkaz na město
+    velka = {}
+    for (obec, okres), v in vybrane.items():
+        if sum(x["aktivni"] for x in v) >= MIN_NABIDEK_MESTA_S_CASTMI and jmena.count(obec) == 1:
+            velka[obec] = _slug(obec)
+    casti = {}
+    for r in radky_casti:
+        if r["obec"] in velka:
+            casti.setdefault((r["obec"], r["cast_obce"]), []).append(r)
+    for (obec, cast), v in casti.items():
+        if sum(x["aktivni"] for x in v) < MIN_NABIDEK_OBCE:
+            continue
+        okresy = [x["okres"] for x in v if x["okres"]]
+        okres = max(set(okresy), key=okresy.count) if okresy else None
+        nazev = (cast if cast.startswith(obec) else
+                 f"{cast} ({okres})" if obec == "Praha" and okres else f"{obec}-{cast}")
+        data = _statistika(v, pred30)
+        data["nadrazena"] = {"slug": velka[obec], "obec": obec, "cast": cast}
+        out.append({"slug": _slug(cast) if cast.startswith(obec) else f"{velka[obec]}-{_slug(cast)}", "obec": nazev, "okres": okres, "kraj": v[0]["kraj"], "data": data})
     for kraj, v in kraje.items():
         if kraj:
             out.append({"slug": "kraj-" + _slug(kraj), "obec": kraj, "okres": None, "kraj": kraj,
