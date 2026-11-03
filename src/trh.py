@@ -475,11 +475,26 @@ def _kvantily(hodnoty):
 REKREACNI_DOMY = ("Chata", "Chalupa", "Zemědělská usedlost", "Památka/jiné")
 
 
+def _po_budovach(rows, hodnota):
+    """Jedna budova = jeden hlas: nabídky se stejnou polohou (~10 m) se sloučí
+    do mediánu. Jinak by jeden developerský projekt s desítkou bytů přehlasoval
+    zbytek malé obce (Vejprty: 11 bytů za 120 tis. Kč/m² v jednom domě)."""
+    budovy = {}
+    for x in rows:
+        h = hodnota(x)
+        if h:
+            klic = (round(x["lat"], 4), round(x["lon"], 4)) if x["lat"] and x["lon"] else id(x)
+            budovy.setdefault(klic, []).append(h)
+    return [statistics.median(v) for v in budovy.values()]
+
+
 def _statistika(v: list, pred30: str) -> dict:
     """Ceny z nabídek jedné obce nebo kraje (aktivní + zmizelé za 30 dní)."""
     akt = [x for x in v if x["aktivni"]]
     def m2(rows, pole):
-        return [x["cena_czk"] / x[pole] for x in rows if x["cena_czk"] and x[pole]]
+        return _po_budovach(rows, lambda x: x["cena_czk"] / x[pole] if x["cena_czk"] and x[pole] else None)
+    def ceny(rows):
+        return _po_budovach(rows, lambda x: x["cena_czk"])
     byty = [x for x in akt if x["kategorie"] == "byt"]
     domy = [x for x in akt if x["kategorie"] == "dum" and x["podtyp"] not in REKREACNI_DOMY]
     pozemky = [x for x in akt if x["kategorie"] == "pozemek" and x["podtyp"] in STAVEBNI_POZEMEK]
@@ -492,15 +507,15 @@ def _statistika(v: list, pred30: str) -> dict:
         stred = [round(_kvantily([x["lat"] * 1e5 for x in polohy])["median"] / 1e5, 4),
                  round(_kvantily([x["lon"] * 1e5 for x in polohy])["median"] / 1e5, 4)]
     return {
-        "byty": {"pocet": len(byty), "cena_m2": _kvantily(m2(byty, "plocha_m2")),
-                 "cena": _kvantily([x["cena_czk"] for x in byty if x["cena_czk"]]),
-                 "dispozice": {d: {"pocet": len(r), "cena": _kvantily([x["cena_czk"] for x in r if x["cena_czk"]]),
+        "byty": {"pocet": len(byty), "budov": len(m2(byty, "plocha_m2")), "cena_m2": _kvantily(m2(byty, "plocha_m2")),
+                 "cena": _kvantily(ceny(byty)),
+                 "dispozice": {d: {"pocet": len(r), "cena": _kvantily(ceny(r)),
                                    "cena_m2": _kvantily(m2(r, "plocha_m2"))}
                                for d, r in sorted(dispozice.items()) if len(r) >= 3}},
-        "domy": {"pocet": len(domy), "cena": _kvantily([x["cena_czk"] for x in domy if x["cena_czk"]]),
+        "domy": {"pocet": len(domy), "budov": len(ceny(domy)), "cena": _kvantily(ceny(domy)),
                  "cena_m2": _kvantily(m2(domy, "plocha_m2")),
                  "pozemek": _kvantily([x["pozemek_m2"] for x in domy if x["pozemek_m2"]])},
-        "pozemky": {"pocet": len(pozemky), "cena_m2": _kvantily(m2(pozemky, "pozemek_m2"))},
+        "pozemky": {"pocet": len(pozemky), "budov": len(m2(pozemky, "pozemek_m2")), "cena_m2": _kvantily(m2(pozemky, "pozemek_m2"))},
         "pohyb_30_dni": {"nove": sum(1 for x in v if x["datum_prvni"] >= pred30 and x["datum_prvni"] > "2026-10-31"),
                          "zmizele": sum(1 for x in v if not x["aktivni"])},
         "aktivnich": len(akt),
