@@ -64,6 +64,14 @@ jobs:
         env:
           OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
 
+      - name: Oznámit stránky vyhledávačům (IndexNow)
+        # Ceny na stránkách obcí se mění každý den; Seznam a Bing se to dozví hned.
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $OCENITO_SYNC_KLIC" https://ocenito.cz/api/indexnow
+        continue-on-error: true
+        env:
+          OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
+
       - name: Kontrola před nahráním
         # Nabídky se nikdy nemažou, jen deaktivují — menší databáze než
         # předtím znamená chybu (poškozené stažení), pak nic nepřepisovat.
