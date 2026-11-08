@@ -458,6 +458,10 @@ def sync(max_radku: int = 40_000) -> int:
         sync_prilezitosti(url, klic)
     except (requests.RequestException, sqlite3.Error) as ex:
         print(f"Příležitosti se nepodařilo odeslat: {ex}")
+    try:
+        sync_sazby(url, klic)
+    except (requests.RequestException, OSError, ValueError) as ex:
+        print(f"Sazbu hypoték se nepodařilo odeslat: {ex}")
     return 0 if poslano == len(zmeny) else 1
 
 
@@ -756,6 +760,22 @@ def prilezitosti(dnes: str | None = None) -> list[dict]:
         })
     vysledek.sort(key=lambda v: -v["skore"])
     return vysledek[:PRIL_MAX]
+
+
+def sync_sazby(url: str, klic: str) -> None:
+    """Poslední průměrná sazba nových hypoték (data/sazba_hypoteky.csv, měsíčně
+    z ČBA Hypomonitoru) pro hypoteční kalkulačku Ocenito."""
+    cesta = ROOT / "data" / "sazba_hypoteky.csv"
+    if not cesta.exists():
+        return
+    radky = list(csv.DictReader(cesta.open(encoding="utf-8")))
+    if not radky:
+        return
+    r = radky[-1]
+    sazba = {"sazba": float(r["sazba_pct"]), "datum": r["datum_aktualizace"], "zdroj": r.get("zdroj")}
+    requests.post(url, json={"nastaveni": {"sazba_hypoteky": sazba}},
+                  headers={"Authorization": f"Bearer {klic}"}, timeout=30).raise_for_status()
+    print(f"Sazba hypoték odeslána: {sazba['sazba']} % ({sazba['datum']}).")
 
 
 def sync_prilezitosti(url: str, klic: str) -> None:
