@@ -450,6 +450,10 @@ def sync(max_radku: int = 40_000) -> int:
         sync_statistik(url, klic)
     except requests.RequestException as ex:
         print(f"Statistiky obcí se nepodařilo odeslat: {ex}")
+    try:
+        sync_stavu(url, klic)
+    except (requests.RequestException, sqlite3.Error) as ex:
+        print(f"Stav nabídek se nepodařilo odeslat: {ex}")
     return 0 if poslano == len(zmeny) else 1
 
 
@@ -584,6 +588,44 @@ def sync_statistik(url: str, klic: str) -> None:
                           headers={"Authorization": f"Bearer {klic}"}, timeout=60)
         r.raise_for_status()
     print(f"Statistiky obcí odeslány: {len(stat)}.")
+
+
+# Stav nabídky (novostavba, po rekonstrukci…) zná jen appka v src/ (detaily
+# nabídek z Prahy a Středních Čech v data/nemovitosti.db). Ocenito ho
+# potřebuje, aby srovnávalo novostavbu s novostavbami: cenu srovnávací
+# nabídky přepočítá na „dobrý stav". Posílají se jen změny (tabulka d1_stavy).
+APP_DB = ROOT / "data" / "nemovitosti.db"
+STAV_OCENITO = {
+    "Novostavba": "novostavba", "Ve výstavbě": "novostavba", "Projekt": "novostavba",
+    "Po rekonstrukci": "po-rekonstrukci",
+    "Velmi dobrý": "dobry", "Dobrý": "dobry", "Částečně po rekonstrukci": "dobry",
+    "Před rekonstrukcí": "k-rekonstrukci", "Špatný": "k-rekonstrukci", "K demolici": "k-rekonstrukci",
+}
+
+
+def sync_stavu(url: str, klic: str) -> None:
+    if not APP_DB.exists():
+        print("data/nemovitosti.db chybí — stav nabídek přeskakuji.")
+        return
+    app = sqlite3.connect(APP_DB)
+    stavy = {}
+    for hid, s in app.execute("SELECT external_id, stav_sreality FROM listings "
+                              "WHERE source='sreality' AND active=1 AND stav_sreality IS NOT NULL"):
+        if STAV_OCENITO.get(s):
+            stavy[str(hid)] = STAV_OCENITO[s]
+    app.close()
+    con = connect()
+    con.execute("CREATE TABLE IF NOT EXISTS d1_stavy (hash_id TEXT PRIMARY KEY, stav TEXT)")
+    odeslano = dict(con.execute("SELECT hash_id, stav FROM d1_stavy"))
+    zmeny = [[h, s] for h, s in stavy.items() if odeslano.get(h) != s]
+    for i in range(0, len(zmeny), 1000):
+        davka = zmeny[i:i + 1000]
+        r = requests.post(url, json={"stavy": davka}, headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+        r.raise_for_status()
+        con.executemany("INSERT OR REPLACE INTO d1_stavy VALUES (?, ?)", davka)
+        con.commit()
+    con.close()
+    print(f"Stav nabídek: {len(stavy)} známých, odesláno {len(zmeny)} změn.")
 
 
 def main():
