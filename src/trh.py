@@ -454,6 +454,10 @@ def sync(max_radku: int = 40_000) -> int:
         sync_stavu(url, klic)
     except (requests.RequestException, sqlite3.Error) as ex:
         print(f"Stav nabídek se nepodařilo odeslat: {ex}")
+    try:
+        sync_prilezitosti(url, klic)
+    except (requests.RequestException, sqlite3.Error) as ex:
+        print(f"Příležitosti se nepodařilo odeslat: {ex}")
     return 0 if poslano == len(zmeny) else 1
 
 
@@ -603,17 +607,31 @@ STAV_OCENITO = {
 }
 
 
-def sync_stavu(url: str, klic: str) -> None:
+def detaily_z_appky() -> dict:
+    """Údaje z detailů nabídek (Praha, Střední Čechy): stav, doplatek k ceně
+    (anuita družstva), neúplná cena, postoupení smlouvy, vlastnictví."""
     if not APP_DB.exists():
-        print("data/nemovitosti.db chybí — stav nabídek přeskakuji.")
-        return
+        return {}
     app = sqlite3.connect(APP_DB)
-    stavy = {}
-    for hid, s in app.execute("SELECT external_id, stav_sreality FROM listings "
-                              "WHERE source='sreality' AND active=1 AND stav_sreality IS NOT NULL"):
-        if STAV_OCENITO.get(s):
-            stavy[str(hid)] = STAV_OCENITO[s]
+    out = {}
+    for hid, s, dopl, neupl, post, vl in app.execute(
+            "SELECT external_id, stav_sreality, doplatek_czk, cena_neuplna, postoupeni_stav, vlastnictvi "
+            "FROM listings WHERE source='sreality' AND active=1"):
+        out[str(hid)] = {"stav": STAV_OCENITO.get(s), "doplatek": dopl or 0, "neuplna": bool(neupl),
+                         "postoupeni": post == "ano", "druzstevni": vl == "Družstevní"}
     app.close()
+    return out
+
+
+def stavy_z_appky() -> dict:
+    return {h: d["stav"] for h, d in detaily_z_appky().items() if d["stav"]}
+
+
+def sync_stavu(url: str, klic: str) -> None:
+    stavy = stavy_z_appky()
+    if not stavy:
+        print("data/nemovitosti.db chybí nebo je prázdná — stav nabídek přeskakuji.")
+        return
     con = connect()
     con.execute("CREATE TABLE IF NOT EXISTS d1_stavy (hash_id TEXT PRIMARY KEY, stav TEXT)")
     odeslano = dict(con.execute("SELECT hash_id, stav FROM d1_stavy"))
@@ -628,6 +646,126 @@ def sync_stavu(url: str, klic: str) -> None:
     print(f"Stav nabídek: {len(stavy)} známých, odesláno {len(zmeny)} změn.")
 
 
+# ---------------------------------------------------------------- příležitosti
+# Nabídky výrazně pod cenou podobných nabídek v okolí (pro admin Ocenito).
+# Cena za m² se u nabídek se známým stavem přepočte na „dobrý stav" (stejné
+# koeficienty jako lib/odhad.js v Ocenito), srovnává se s mediánem budov
+# v okolí podobné velikosti (jedna budova = jeden hlas). Velké „slevy" bývají
+# často chyba v inzerátu (podíl, dražba, plocha), proto filtry a strop slevy.
+KOEF_STAVU = {"k-rekonstrukci": 0.85, "dobry": 1.0, "po-rekonstrukci": 1.08, "novostavba": 1.15}
+PRIL_MAX = 500
+PRIL_MIN_SLEVA, PRIL_MAX_SLEVA = 0.15, 0.45
+PRIL_OVERIT = 0.35   # nad touto slevou bývá důvod v inzerátu (podíl, záloha, chyba plochy)
+PRIL_MIN_BUDOV = 8
+PRIL_PODEZRELE = re.compile(r"podíl|dražb|aukc|pronáj|rezervac|garáž|komerč|ateliér", re.I)
+# (min., max. velikost, min. cena, okruh km)
+PRIL_MEZE = {"byt": (15, 300, 300_000, 2.5), "dum": (40, 800, 500_000, 6), "pozemek": (300, 20_000, 150_000, 6)}
+ZACATEK_HISTORIE = "2026-10-31"
+
+
+def _km(a, b):
+    import math
+    dy = (a["lat"] - b["lat"]) * 111.32
+    dx = (a["lon"] - b["lon"]) * 111.32 * math.cos(math.radians(a["lat"]))
+    return math.hypot(dx, dy)
+
+
+def prilezitosti(dnes: str | None = None) -> list[dict]:
+    import math
+    dnes = dnes or time.strftime("%Y-%m-%d")
+    detaily = detaily_z_appky()
+    con = connect()
+    rows = [dict(r) for r in con.execute(
+        "SELECT hash_id, kategorie, podtyp, nazev, url, kraj, okres, obec, cast_obce, ulice, lat, lon, "
+        "plocha_m2, pozemek_m2, cena_czk, cena_prvni, pocet_zmen_ceny, datum_prvni FROM nabidky "
+        "WHERE aktivni = 1 AND lat IS NOT NULL AND lon IS NOT NULL AND cena_czk IS NOT NULL")]
+    con.close()
+    # segmenty: rekreační domy zvlášť, pozemky jen stavební
+    nabidky, videno = [], set()
+    for x in rows:
+        k = x["kategorie"]
+        if k not in PRIL_MEZE:
+            continue
+        if k == "pozemek" and x["podtyp"] not in STAVEBNI_POZEMEK:
+            continue
+        vel = x["pozemek_m2"] if k == "pozemek" else x["plocha_m2"]
+        lo, hi, min_cena, _ = PRIL_MEZE[k]
+        if not vel or not (lo <= vel <= hi):
+            continue
+        klic = (k, round(vel), round(x["cena_czk"] / 1000))
+        if klic in videno:  # tatáž nemovitost od více realitek
+            continue
+        videno.add(klic)
+        d = detaily.get(x["hash_id"], {})
+        x["segment"] = k + ("-rekreace" if k == "dum" and x["podtyp"] in REKREACNI_DOMY else "")
+        x["vel"] = vel
+        x["stav"] = d.get("stav")
+        x["druzstevni"] = d.get("druzstevni")
+        # u družstevních bytů je v ceně často jen záloha, zbytek je doplatek (anuita)
+        x["cena_celkem"] = x["cena_czk"] + (d.get("doplatek") or 0)
+        x["m2"] = x["cena_celkem"] / vel / KOEF_STAVU.get(x["stav"], 1.0)
+        x["ok"] = (x["cena_czk"] >= min_cena and not PRIL_PODEZRELE.search(x["nazev"] or "")
+                   and not d.get("neuplna") and not d.get("postoupeni"))
+        nabidky.append(x)
+    # mřížka ~2,2 km
+    mrizka = {}
+    for x in nabidky:
+        mrizka.setdefault((x["segment"], int(x["lat"] / 0.02), int(x["lon"] / 0.03)), []).append(x)
+    vysledek = []
+    for x in nabidky:
+        if not x["ok"]:
+            continue
+        r = PRIL_MEZE[x["kategorie"]][3]
+        n = math.ceil(r / 2.2)
+        ci, cj = int(x["lat"] / 0.02), int(x["lon"] / 0.03)
+        budovy = {}
+        for i in range(ci - n, ci + n + 1):
+            for j in range(cj - n, cj + n + 1):
+                for y in mrizka.get((x["segment"], i, j), ()):
+                    if y is x or not (0.67 <= y["vel"] / x["vel"] <= 1.5):
+                        continue
+                    if abs(y["lat"] - x["lat"]) < 1e-4 and abs(y["lon"] - x["lon"]) < 1e-4:
+                        continue  # stejný dům nebo projekt se nesrovnává sám se sebou
+                    if _km(x, y) > r:
+                        continue
+                    budovy.setdefault((round(y["lat"], 4), round(y["lon"], 4)), []).append(y["m2"])
+        if len(budovy) < PRIL_MIN_BUDOV:
+            continue
+        med = statistics.median(statistics.median(v) for v in budovy.values())
+        sleva = 1 - x["m2"] / med
+        if not (PRIL_MIN_SLEVA <= sleva <= PRIL_MAX_SLEVA):
+            continue
+        zlevneni = (1 - x["cena_czk"] / x["cena_prvni"]) if x["cena_prvni"] and x["cena_prvni"] > x["cena_czk"] else 0
+        dni = None
+        if x["datum_prvni"] and x["datum_prvni"] > ZACATEK_HISTORIE:
+            dni = (time.mktime(time.strptime(dnes, "%Y-%m-%d")) - time.mktime(time.strptime(x["datum_prvni"][:10], "%Y-%m-%d"))) / 86400
+        jistota = min(1.0, 0.7 + len(budovy) / 50)
+        # nad PRIL_OVERIT skóre zase klesá: tak velká „sleva" bývá spíš chyba v inzerátu
+        body_sleva = sleva * 100 if sleva <= PRIL_OVERIT else PRIL_OVERIT * 100 - (sleva - PRIL_OVERIT) * 150
+        skore = (body_sleva + zlevneni * 60 + 2 * min(x["pocet_zmen_ceny"] or 0, 5)) * jistota
+        odhad = med * KOEF_STAVU.get(x["stav"], 1.0) * x["vel"]
+        vysledek.append({
+            "hash_id": x["hash_id"], "kategorie": x["kategorie"], "podtyp": x["podtyp"], "nazev": x["nazev"], "url": x["url"],
+            "kraj": x["kraj"], "okres": x["okres"], "obec": x["obec"], "cast_obce": x["cast_obce"], "ulice": x["ulice"],
+            "lat": round(x["lat"], 5), "lon": round(x["lon"], 5), "plocha_m2": x["plocha_m2"], "pozemek_m2": x["pozemek_m2"],
+            "cena": round(x["cena_czk"]), "doplatek": round(x["cena_celkem"] - x["cena_czk"]) or None,
+            "druzstevni": x["druzstevni"], "overit": sleva > PRIL_OVERIT, "cena_prvni": round(x["cena_prvni"]) if x["cena_prvni"] else None,
+            "zmen_ceny": x["pocet_zmen_ceny"] or 0, "datum_prvni": x["datum_prvni"], "dni": round(dni) if dni is not None else None,
+            "stav": x["stav"], "odhad": round(odhad, -4), "sleva": round(sleva * 100, 1), "zlevneni": round(zlevneni * 100, 1),
+            "budov": len(budovy), "skore": round(skore, 1),
+        })
+    vysledek.sort(key=lambda v: -v["skore"])
+    return vysledek[:PRIL_MAX]
+
+
+def sync_prilezitosti(url: str, klic: str) -> None:
+    p = prilezitosti()
+    r = requests.post(url, json={"prilezitosti": p, "den": time.strftime("%Y-%m-%d")},
+                      headers={"Authorization": f"Bearer {klic}"}, timeout=90)
+    r.raise_for_status()
+    print(f"Příležitosti odeslány: {len(p)}.")
+
+
 def main():
     ap = argparse.ArgumentParser(prog="trh", description="Databáze trhu nemovitostí (Sreality, celá ČR)")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -640,6 +778,8 @@ def main():
     sub.add_parser("souhrn", help="připíše dnešní agregát do data/trh_souhrn.csv")
     p = sub.add_parser("sync", help="pošle změněné nabídky do Ocenito (Cloudflare D1)")
     p.add_argument("--max", type=int, default=40_000, help="nejvýš nabídek za běh (limit zápisů D1)")
+    p = sub.add_parser("prilezitosti", help="vypíše nebo uloží nabídky výrazně pod cenou okolí")
+    p.add_argument("--json", help="uložit do souboru JSON")
     a = ap.parse_args()
     if a.cmd == "stahnout":
         sys.exit(stahnout(a.kategorie, a.kraje, a.max_stranek))
@@ -649,6 +789,14 @@ def main():
         souhrn()
     elif a.cmd == "sync":
         sys.exit(sync(a.max))
+    elif a.cmd == "prilezitosti":
+        p = prilezitosti()
+        if a.json:
+            Path(a.json).write_text(json.dumps(p, ensure_ascii=False), encoding="utf-8")
+        for v in p[:25]:
+            print(f"{v['skore']:6.1f} {v['sleva']:5.1f} % {v['kategorie']:7} {v['obec'] or '':22.22} {v['nazev'] or '':38.38} "
+                  f"{v['cena']:>11,} (odhad {v['odhad']:>11,.0f}) budov {v['budov']}")
+        print(f"celkem {len(p)}")
 
 
 if __name__ == "__main__":
