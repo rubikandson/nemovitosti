@@ -643,6 +643,7 @@ CREATE TABLE IF NOT EXISTS detaily (
     hash_id TEXT PRIMARY KEY, datum TEXT NOT NULL,
     stav TEXT, stav_zdroj TEXT, konstrukce TEXT, penb TEXT, patro INTEGER, pater INTEGER,
     vytah INTEGER, rok INTEGER, rok_rekonstrukce INTEGER, vlastnictvi TEXT, druh TEXT,
+    doplatek REAL, neuplna INTEGER,
     chyba TEXT
 );
 """
@@ -699,6 +700,13 @@ def detail_zaznam(d: dict) -> dict:
     for k in ("object_age", "acceptance_year"):
         rok = rok or _int(d.get(k), 1700, date.today().year + 5)
     fn = d.get("floor_number")
+    # doplatek k ceně (anuita družstva, „celková cena“ v poznámce) a neúplná
+    # cena (jen záloha / první splátka): stejný rozbor textu jako appka
+    try:
+        from src.sreality_detail import _doplatek
+        doplatek, neuplna = _doplatek(d)
+    except Exception:  # noqa: BLE001 — rozbor textu je doplněk
+        doplatek, neuplna = None, 0
     return {
         "stav": stav, "stav_zdroj": zdroj,
         "konstrukce": KONSTRUKCE.get(_jmeno(d.get("building_type")) or ""),
@@ -708,6 +716,7 @@ def detail_zaznam(d: dict) -> dict:
         "vytah": 1 if vytah.startswith("ano") else 0 if vytah.startswith("ne") else None,
         "rok": rok, "rok_rekonstrukce": _int(d.get("reconstruction_year"), 1800, date.today().year + 5),
         "vlastnictvi": _jmeno(d.get("ownership")), "druh": _jmeno(d.get("object_kind")),
+        "doplatek": doplatek, "neuplna": int(bool(neuplna)),
     }
 
 
@@ -769,23 +778,26 @@ def _konstrukce_appky(typ):
 
 
 def detaily_vsech() -> dict:
-    """hash_id → (stav, konstrukce, penb, patro, vytah, rok) z appky a z tabulky detaily."""
+    """hash_id → (stav, konstrukce, penb, patro, vytah, rok, doplatek, neuplna)
+    z appky a z tabulky detaily."""
     out = {}
     if APP_DB.exists():
         app = sqlite3.connect(APP_DB)
-        for h, s, typ, penb, fn, vyt, rok in app.execute(
-                "SELECT external_id, stav_sreality, typ_stavby, energeticky_stitek, patro, vytah, rok_vystavby "
-                "FROM listings WHERE source='sreality'"):
+        for h, s, typ, penb, fn, vyt, rok, dopl, neupl in app.execute(
+                "SELECT external_id, stav_sreality, typ_stavby, energeticky_stitek, patro, vytah, rok_vystavby, "
+                "doplatek_czk, cena_neuplna FROM listings WHERE source='sreality'"):
             p = (penb or "")[:1]
             out[str(h)] = (STAV_OCENITO.get(s), _konstrukce_appky(typ), p if p and p in "ABCDEFG" else None,
                            max(0, int(fn) - 1) if isinstance(fn, (int, float)) else None,
                            1 if (vyt or "").lower().startswith("ano") else 0 if (vyt or "").lower().startswith("ne") else None,
-                           rok if isinstance(rok, int) and 1700 <= rok <= 2100 else None)
+                           rok if isinstance(rok, int) and 1700 <= rok <= 2100 else None,
+                           round(dopl) if dopl and dopl > 0 else None, 1 if neupl else None)
         app.close()
     con = connect()
     con.executescript(DETAIL_SCHEMA)
-    for r in con.execute("SELECT hash_id, stav, konstrukce, penb, patro, vytah, rok FROM detaily WHERE chyba IS NULL"):
-        out.setdefault(r[0], tuple(r[1:]))
+    for r in con.execute("SELECT hash_id, stav, konstrukce, penb, patro, vytah, rok, doplatek, neuplna "
+                         "FROM detaily WHERE chyba IS NULL"):
+        out.setdefault(r[0], (*r[1:8], round(r[8]) if r[8] else None, 1 if r[9] else None))
     con.close()
     return out
 
@@ -800,7 +812,7 @@ def sync_detailu(url: str, klic: str, max_radku: int = 30_000) -> None:
     zmeny = []
     # aktivní napřed, s detailem napřed
     for h, kraj, akt in con.execute("SELECT hash_id, kraj, aktivni FROM nabidky ORDER BY aktivni DESC"):
-        radek = [h, kraj, *det.get(h, (None,) * 6)]
+        radek = [h, kraj, *det.get(h, (None,) * 8)]
         otisk = hashlib.sha1(json.dumps(radek, ensure_ascii=False).encode()).hexdigest()[:12]
         if odeslano.get(h) != otisk:
             zmeny.append((radek, otisk, h in det))
