@@ -455,6 +455,10 @@ def sync(max_radku: int = 40_000) -> int:
     except (requests.RequestException, sqlite3.Error) as ex:
         print(f"Detaily nabídek se nepodařilo odeslat: {ex}")
     try:
+        sync_modelu(url, klic)
+    except (requests.RequestException, sqlite3.Error, ValueError) as ex:
+        print(f"Model trhu se nepodařilo odeslat: {ex}")
+    try:
         sync_prilezitosti(url, klic)
     except (requests.RequestException, sqlite3.Error) as ex:
         print(f"Příležitosti se nepodařilo odeslat: {ex}")
@@ -830,6 +834,112 @@ def sync_detailu(url: str, klic: str, max_radku: int = 30_000) -> None:
     print(f"Detaily nabídek: známých {len(det)}, změn {celkem}, odesláno {len(zmeny)}.")
 
 
+# ---------------------------------------------------------------- model pro Ocenito
+# Dvě věci, které Ocenito dřív bralo jako pevná čísla, se počítají z dat:
+#
+# 1) Sleva z nabídkové na prodejní cenu podle kraje a typu. Nabídky během
+#    inzerce zlevňují; z historie (udalosti) víme, jak často a o kolik, a jak
+#    dlouho nabídka v průměru visí (mizení). Očekávané zlevnění za dobu inzerce
+#    + vyjednávání při podpisu (VYJEDNAVANI, odhad z praxe) = sleva. Kraje
+#    s málo daty se stahují k celostátní hodnotě.
+# 2) Koeficienty stavu (novostavba, po rekonstrukci, k rekonstrukci) proti
+#    „dobrému stavu“: srovnání cen za m² v okolí (~1 km) a podobné velikosti.
+VYJEDNAVANI = 0.02
+SLEVA_MEZE = (0.02, 0.15)
+KOEF_VYCHOZI = {"byt": {"k-rekonstrukci": 0.85, "dobry": 1.0, "po-rekonstrukci": 1.08, "novostavba": 1.15},
+                "dum": {"k-rekonstrukci": 0.85, "dobry": 1.0, "po-rekonstrukci": 1.08, "novostavba": 1.15}}
+KOEF_MEZE = {"k-rekonstrukci": (0.6, 0.97), "po-rekonstrukci": (1.0, 1.25), "novostavba": (1.0, 1.45)}
+
+
+def _slevy(con) -> dict:
+    dnes = date.today()
+    expo, zmizelo = {}, {}
+    for kat, kraj, prvni, posl, zmiz in con.execute(
+            "SELECT kategorie, kraj, datum_prvni, datum_posledni, datum_zmizeni FROM nabidky"):
+        konec = zmiz or posl or dnes.isoformat()
+        dni = max(1, (date.fromisoformat(konec[:10]) - date.fromisoformat(prvni[:10])).days)
+        for k in ((kat, kraj), (kat, "_")):
+            expo[k] = expo.get(k, 0) + dni
+            if zmiz:
+                zmizelo[k] = zmizelo.get(k, 0) + 1
+    rezy = {}
+    for kat, kraj, pred, po in con.execute(
+            "SELECT n.kategorie, n.kraj, u.cena_pred, u.cena_po FROM udalosti u JOIN nabidky n USING (hash_id) "
+            "WHERE u.typ = 'zmena_ceny' AND u.cena_po < u.cena_pred AND u.cena_pred > 0"):
+        r = 1 - po / pred
+        if 0.005 <= r <= 0.4:   # větší „slevy“ bývají oprava chyby v ceně
+            for k in ((kat, kraj), (kat, "_")):
+                rezy.setdefault(k, []).append(r)
+    out = {}
+    for k in sorted(expo, key=lambda k: k[1] != "_"):   # celostátní napřed
+        e, z, rz = expo[k], zmizelo.get(k, 0), rezy.get(k, [])
+        if not z or not rz:
+            continue
+        doba = min(365, max(45, e / z))               # průměrná doba inzerce (dní)
+        rezu = min(2.0, len(rz) / e * doba)            # zlevnění za dobu inzerce
+        sleva = VYJEDNAVANI + rezu * statistics.mean(rz)
+        if k[1] != "_" and (k[0], "_") in out:
+            w = e / (e + 20_000)                       # málo dat → blíž celostátní hodnotě
+            sleva = w * sleva + (1 - w) * out[(k[0], "_")]["sleva"]
+        sleva = min(SLEVA_MEZE[1], max(SLEVA_MEZE[0], sleva))
+        out[k] = {"sleva": round(sleva, 4), "doba": round(doba), "zlevneni": round(rezu, 2),
+                  "o_kolik": round(statistics.mean(rz), 4), "nabidek_dni": e}
+    return {f"{k[0]}|{k[1]}": v for k, v in out.items()}
+
+
+def _koeficienty(con, det: dict) -> dict:
+    import math
+    out = {}
+    for kat in ("byt", "dum"):
+        bunky = {}
+        for h, lat, lon, pl, c in con.execute(
+                "SELECT hash_id, lat, lon, plocha_m2, cena_czk FROM nabidky WHERE aktivni = 1 AND kategorie = ? "
+                "AND plocha_m2 BETWEEN 20 AND 600 AND cena_czk > 300000 AND lat IS NOT NULL", (kat,)):
+            d = det.get(h)
+            if not d or not d[0] or d[7]:      # bez stavu nebo s neúplnou cenou
+                continue
+            cena = c + (d[6] or 0)
+            k = (int(lat / 0.01), int(lon / 0.015), int(math.log(pl) / 0.3))
+            bunky.setdefault(k, []).append((d[0], math.log(cena / pl)))
+        rozdily = {}
+        for v in bunky.values():
+            dobre = [x for s_, x in v if s_ == "dobry"]
+            if len(dobre) < 3:
+                continue
+            m = statistics.median(dobre)
+            for s_, x in v:
+                if s_ != "dobry":
+                    rozdily.setdefault(s_, []).append(x - m)
+        koef = dict(KOEF_VYCHOZI[kat])
+        pocty = {}
+        for s_, r in rozdily.items():
+            n = len(r)
+            w = n / (n + 200)                          # málo dat → blíž výchozí hodnotě
+            k = math.exp(w * statistics.median(r) + (1 - w) * math.log(KOEF_VYCHOZI[kat][s_]))
+            lo, hi = KOEF_MEZE[s_]
+            koef[s_] = round(min(hi, max(lo, k)), 3)
+            pocty[s_] = n
+        out[kat] = {"koef": koef, "n": pocty}
+    return out
+
+
+def model_trhu() -> dict:
+    det = detaily_vsech()
+    con = connect()
+    m = {"sleva": _slevy(con), "stav": _koeficienty(con, det), "datum": date.today().isoformat()}
+    con.close()
+    return m
+
+
+def sync_modelu(url: str, klic: str) -> None:
+    m = model_trhu()
+    requests.post(url, json={"nastaveni": {"model": m}},
+                  headers={"Authorization": f"Bearer {klic}"}, timeout=60).raise_for_status()
+    s = m["sleva"]
+    print("Model: sleva " + ", ".join(f"{k} {v['sleva'] * 100:.1f} %" for k, v in s.items() if k.endswith("|_"))
+          + "; stav byt " + str(m["stav"]["byt"]["koef"]) + ", dům " + str(m["stav"]["dum"]["koef"]))
+
+
 def presnost(url: str, klic: str, vzorku: int = 150, davka: int = 5) -> None:
     """Spustí měření přesnosti v Ocenito: po dávkách ocení náhodné nabídky,
     jako by je neviděl, a porovná s jejich cenou. Nakonec přepočítá kalibraci."""
@@ -999,6 +1109,7 @@ def main():
     p.add_argument("--max", type=int, default=40_000, help="nejvýš nabídek za běh (limit zápisů D1)")
     p = sub.add_parser("detaily", help="stáhne detaily nabídek (stav, typ stavby…), které ještě chybí")
     p.add_argument("--limit", type=int, default=DETAIL_LIMIT)
+    sub.add_parser("model", help="vypíše slevu podle krajů a koeficienty stavu, které jdou do Ocenito")
     p = sub.add_parser("presnost", help="spustí měření přesnosti ocenění v Ocenito")
     p.add_argument("--vzorku", type=int, default=150)
     p = sub.add_parser("prilezitosti", help="vypíše nebo uloží nabídky výrazně pod cenou okolí")
@@ -1014,6 +1125,8 @@ def main():
         sys.exit(sync(a.max))
     elif a.cmd == "detaily":
         sys.exit(stahni_detaily(a.limit))
+    elif a.cmd == "model":
+        print(json.dumps(model_trhu(), ensure_ascii=False, indent=1))
     elif a.cmd == "presnost":
         klic = os.environ.get("OCENITO_SYNC_KLIC")
         if not klic:
