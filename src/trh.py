@@ -801,7 +801,7 @@ def detaily_vsech() -> dict:
     con.executescript(DETAIL_SCHEMA)
     for r in con.execute("SELECT hash_id, stav, konstrukce, penb, patro, vytah, rok, doplatek, neuplna "
                          "FROM detaily WHERE chyba IS NULL"):
-        out.setdefault(r[0], (*r[1:8], round(r[8]) if r[8] else None, 1 if r[9] else None))
+        out.setdefault(r[0], (*r[1:7], round(r[7]) if r[7] else None, 1 if r[8] else None))
     con.close()
     return out
 
@@ -948,8 +948,12 @@ def presnost(url: str, klic: str, vzorku: int = 150, davka: int = 5) -> None:
     while hotovo < vzorku and chyb < 5:
         try:
             r = requests.post(base, json={"pocet": davka}, headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+            if r.status_code == 429:      # ochrana webu proti přetížení: počkat a zkusit znovu
+                time.sleep(30)
+                continue
             r.raise_for_status()
             hotovo += max(1, r.json().get("ulozeno", 0))
+            time.sleep(2)
         except requests.RequestException as ex:
             chyb += 1
             print(f"  přesnost: {ex}")
