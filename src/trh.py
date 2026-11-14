@@ -451,9 +451,9 @@ def sync(max_radku: int = 40_000) -> int:
     except requests.RequestException as ex:
         print(f"Statistiky obcí se nepodařilo odeslat: {ex}")
     try:
-        sync_stavu(url, klic)
+        sync_detailu(url, klic)
     except (requests.RequestException, sqlite3.Error) as ex:
-        print(f"Stav nabídek se nepodařilo odeslat: {ex}")
+        print(f"Detaily nabídek se nepodařilo odeslat: {ex}")
     try:
         sync_prilezitosti(url, klic)
     except (requests.RequestException, sqlite3.Error) as ex:
@@ -599,9 +599,8 @@ def sync_statistik(url: str, klic: str) -> None:
 
 
 # Stav nabídky (novostavba, po rekonstrukci…) zná jen appka v src/ (detaily
-# nabídek z Prahy a Středních Čech v data/nemovitosti.db). Ocenito ho
-# potřebuje, aby srovnávalo novostavbu s novostavbami: cenu srovnávací
-# nabídky přepočítá na „dobrý stav". Posílají se jen změny (tabulka d1_stavy).
+# nabídek z Prahy a Středních Čech v data/nemovitosti.db). Do Ocenito ho
+# spolu s dalšími údaji posílá sync_detailu níže.
 APP_DB = ROOT / "data" / "nemovitosti.db"
 STAV_OCENITO = {
     "Novostavba": "novostavba", "Ve výstavbě": "novostavba", "Projekt": "novostavba",
@@ -627,27 +626,215 @@ def detaily_z_appky() -> dict:
     return out
 
 
-def stavy_z_appky() -> dict:
-    return {h: d["stav"] for h, d in detaily_z_appky().items() if d["stav"]}
+# ---------------------------------------------------------------- detaily nabídek
+# Stav, typ stavby, energetická třída, patro, výtah a rok výstavby z detailu
+# nabídky. Pro byty v Praze a Středních Čechách je už má appka (data/
+# nemovitosti.db); domy v celé ČR a byty v ostatních krajích se stahují tady,
+# každá nabídka jednou, nejvýš DETAIL_LIMIT za běh (šetrně, po 1 s). Text
+# popisu se jen projde kvůli stavu a neukládá se.
+DETAIL_API = "https://www.sreality.cz/api/v1/estates/{}"
+DETAIL_HEADERS = {"User-Agent": "Ocenito/1.0 (+https://ocenito.cz)", "Accept": "application/json"}
+DETAIL_LIMIT = 2000
+DETAIL_PAUZA_S = 1.0
+KONSTRUKCE = {"Cihlová": "cihla", "Kamenná": "cihla", "Panelová": "panel", "Skeletová": "skelet",
+              "Smíšená": "smisena", "Dřevostavba": "drevostavba", "Montovaná": "montovana", "Modulární": "montovana"}
+DETAIL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS detaily (
+    hash_id TEXT PRIMARY KEY, datum TEXT NOT NULL,
+    stav TEXT, stav_zdroj TEXT, konstrukce TEXT, penb TEXT, patro INTEGER, pater INTEGER,
+    vytah INTEGER, rok INTEGER, rok_rekonstrukce INTEGER, vlastnictvi TEXT, druh TEXT,
+    chyba TEXT
+);
+"""
 
 
-def sync_stavu(url: str, klic: str) -> None:
-    stavy = stavy_z_appky()
-    if not stavy:
-        print("data/nemovitosti.db chybí nebo je prázdná — stav nabídek přeskakuji.")
-        return
+def _jmeno(x):
+    n = (x.get("name") if isinstance(x, dict) else x) or ""
+    n = str(n).strip()
+    return None if not n or n.startswith("-") or n.lower().startswith("nedefinov") else n
+
+
+def _int(x, lo, hi):
+    try:
+        v = int(x)
+    except (TypeError, ValueError):
+        return None
+    return v if lo <= v <= hi else None
+
+
+_RE_K_REK = re.compile(r"(?:určen\w*|vhodn\w*|nutn\w*|vyžaduje|čeká)\s+(?:na\s+)?(?:celkov\w*\s+|kompletn\w*\s+)?rekonstrukc"
+                       r"|k\s+(?:celkové\s+|kompletní\s+)?rekonstrukci|před\s+rekonstrukcí")
+_RE_PO_REK = re.compile(r"po\s+(?:kompletní|celkové|generální|nákladné|citlivé|zdařilé)?\s*rekonstrukci"
+                        r"|kompletně\s+(?:zrekonstruovan|zrenovovan)")
+
+
+def stav_z_detailu(d: dict):
+    """Stejná pravidla jako stavZInzeratu v Ocenito (lib/inzerat.js)."""
+    s = (_jmeno(d.get("building_condition")) or "").lower()
+    rok = date.today().year
+    if re.search(r"novostavba|ve výstavbě|projekt", s):
+        return "novostavba", "inzerat"
+    if s.startswith("po rekonstrukci"):
+        stara = d.get("reconstruction_year") and rok - int(d["reconstruction_year"]) > 15
+        return ("dobry" if stara else "po-rekonstrukci"), "inzerat"
+    if re.search(r"před rekonstrukcí|špatný|k demolici|v rekonstrukci", s):
+        return "k-rekonstrukci", "inzerat"
+    if re.search(r"dobrý|částečně", s):
+        return "dobry", "inzerat"
+    t = str(d.get("advert_description") or "").lower()
+    if _RE_K_REK.search(t):
+        return "k-rekonstrukci", "popis"
+    if _RE_PO_REK.search(t):
+        return "po-rekonstrukci", "popis"
+    if "novostavb" in t:
+        return "novostavba", "popis"
+    return None, None
+
+
+def detail_zaznam(d: dict) -> dict:
+    penb = (_jmeno(d.get("energy_efficiency_rating_cb")) or "")[:1]
+    vytah = (_jmeno(d.get("elevator")) or "").lower()
+    stav, zdroj = stav_z_detailu(d)
+    rok = None
+    for k in ("object_age", "acceptance_year"):
+        rok = rok or _int(d.get(k), 1700, date.today().year + 5)
+    fn = d.get("floor_number")
+    return {
+        "stav": stav, "stav_zdroj": zdroj,
+        "konstrukce": KONSTRUKCE.get(_jmeno(d.get("building_type")) or ""),
+        "penb": penb if penb in "ABCDEFG" and penb else None,
+        "patro": max(0, int(fn) - 1) if isinstance(fn, (int, float)) else None,
+        "pater": _int(d.get("floors"), 1, 99),
+        "vytah": 1 if vytah.startswith("ano") else 0 if vytah.startswith("ne") else None,
+        "rok": rok, "rok_rekonstrukce": _int(d.get("reconstruction_year"), 1800, date.today().year + 5),
+        "vlastnictvi": _jmeno(d.get("ownership")), "druh": _jmeno(d.get("object_kind")),
+    }
+
+
+def stahni_detaily(limit: int = DETAIL_LIMIT) -> int:
+    """Stáhne detaily nabídek, které je ještě nemají: domy (celá ČR) napřed,
+    pak byty mimo Prahu a Střední Čechy; nejnovější první."""
     con = connect()
-    con.execute("CREATE TABLE IF NOT EXISTS d1_stavy (hash_id TEXT PRIMARY KEY, stav TEXT)")
-    odeslano = dict(con.execute("SELECT hash_id, stav FROM d1_stavy"))
-    zmeny = [[h, s] for h, s in stavy.items() if odeslano.get(h) != s]
+    con.executescript(DETAIL_SCHEMA)
+    rows = [r[0] for r in con.execute(
+        "SELECT n.hash_id FROM nabidky n LEFT JOIN detaily d ON d.hash_id = n.hash_id "
+        "WHERE n.aktivni = 1 AND d.hash_id IS NULL AND (n.kategorie = 'dum' OR "
+        "(n.kategorie = 'byt' AND n.kraj NOT IN ('Praha', 'Středočeský'))) "
+        "ORDER BY n.kategorie = 'byt', n.datum_prvni DESC LIMIT ?", (limit,))]
+    print(f"Detaily: stahuji {len(rows)} nabídek.")
+    dnes, ok, chyb, blok = date.today().isoformat(), 0, 0, 0
+    for i, h in enumerate(rows):
+        try:
+            r = requests.get(DETAIL_API.format(h), headers=DETAIL_HEADERS, timeout=20)
+        except requests.RequestException as ex:
+            print(f"  {h}: {ex}")
+            chyb += 1
+            time.sleep(5)
+            continue
+        if r.status_code in (403, 429):
+            blok += 1
+            print(f"  {h}: HTTP {r.status_code}")
+            if blok >= 5:
+                print("Detaily: server odmítá dotazy, končím a zbytek zkusím příště.")
+                break
+            time.sleep(30 * blok)
+            continue
+        blok = 0
+        if r.status_code in (404, 410):
+            con.execute("INSERT OR REPLACE INTO detaily (hash_id, datum, chyba) VALUES (?, ?, 'neexistuje')", (h, dnes))
+        elif r.status_code == 200:
+            j = r.json()
+            z = detail_zaznam(j.get("result", j))
+            con.execute(f"INSERT OR REPLACE INTO detaily (hash_id, datum, {', '.join(z)}) VALUES (?, ?, "
+                        f"{', '.join('?' for _ in z)})", (h, dnes, *z.values()))
+            ok += 1
+        else:
+            chyb += 1
+            print(f"  {h}: HTTP {r.status_code}")
+        if i % 100 == 99:
+            con.commit()
+        time.sleep(DETAIL_PAUZA_S)
+    con.commit()
+    zbyva = con.execute(
+        "SELECT COUNT(*) FROM nabidky n LEFT JOIN detaily d ON d.hash_id = n.hash_id WHERE n.aktivni = 1 "
+        "AND d.hash_id IS NULL AND (n.kategorie = 'dum' OR (n.kategorie = 'byt' AND n.kraj NOT IN ('Praha', 'Středočeský')))"
+    ).fetchone()[0]
+    con.close()
+    print(f"Detaily: uloženo {ok}, chyb {chyb}, zbývá {zbyva}.")
+    return 0
+
+
+def _konstrukce_appky(typ):
+    return KONSTRUKCE.get((typ or "").strip())
+
+
+def detaily_vsech() -> dict:
+    """hash_id → (stav, konstrukce, penb, patro, vytah, rok) z appky a z tabulky detaily."""
+    out = {}
+    if APP_DB.exists():
+        app = sqlite3.connect(APP_DB)
+        for h, s, typ, penb, fn, vyt, rok in app.execute(
+                "SELECT external_id, stav_sreality, typ_stavby, energeticky_stitek, patro, vytah, rok_vystavby "
+                "FROM listings WHERE source='sreality'"):
+            p = (penb or "")[:1]
+            out[str(h)] = (STAV_OCENITO.get(s), _konstrukce_appky(typ), p if p and p in "ABCDEFG" else None,
+                           max(0, int(fn) - 1) if isinstance(fn, (int, float)) else None,
+                           1 if (vyt or "").lower().startswith("ano") else 0 if (vyt or "").lower().startswith("ne") else None,
+                           rok if isinstance(rok, int) and 1700 <= rok <= 2100 else None)
+        app.close()
+    con = connect()
+    con.executescript(DETAIL_SCHEMA)
+    for r in con.execute("SELECT hash_id, stav, konstrukce, penb, patro, vytah, rok FROM detaily WHERE chyba IS NULL"):
+        out.setdefault(r[0], tuple(r[1:]))
+    con.close()
+    return out
+
+
+def sync_detailu(url: str, klic: str, max_radku: int = 30_000) -> None:
+    """Pošle kraj (všech nabídek) a známé detaily. Jen změny (tabulka d1_detaily),
+    nejvýš max_radku za běh kvůli dennímu limitu zápisů D1."""
+    det = detaily_vsech()
+    con = connect()
+    con.execute("CREATE TABLE IF NOT EXISTS d1_detaily (hash_id TEXT PRIMARY KEY, otisk TEXT)")
+    odeslano = dict(con.execute("SELECT hash_id, otisk FROM d1_detaily"))
+    zmeny = []
+    # aktivní napřed, s detailem napřed
+    for h, kraj, akt in con.execute("SELECT hash_id, kraj, aktivni FROM nabidky ORDER BY aktivni DESC"):
+        radek = [h, kraj, *det.get(h, (None,) * 6)]
+        otisk = hashlib.sha1(json.dumps(radek, ensure_ascii=False).encode()).hexdigest()[:12]
+        if odeslano.get(h) != otisk:
+            zmeny.append((radek, otisk, h in det))
+    zmeny.sort(key=lambda z: not z[2])
+    celkem = len(zmeny)
+    zmeny = zmeny[:max_radku]
     for i in range(0, len(zmeny), 1000):
         davka = zmeny[i:i + 1000]
-        r = requests.post(url, json={"stavy": davka}, headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+        r = requests.post(url, json={"detaily": [z[0] for z in davka]},
+                          headers={"Authorization": f"Bearer {klic}"}, timeout=90)
         r.raise_for_status()
-        con.executemany("INSERT OR REPLACE INTO d1_stavy VALUES (?, ?)", davka)
+        con.executemany("INSERT OR REPLACE INTO d1_detaily VALUES (?, ?)", [(z[0][0], z[1]) for z in davka])
         con.commit()
     con.close()
-    print(f"Stav nabídek: {len(stavy)} známých, odesláno {len(zmeny)} změn.")
+    print(f"Detaily nabídek: známých {len(det)}, změn {celkem}, odesláno {len(zmeny)}.")
+
+
+def presnost(url: str, klic: str, vzorku: int = 150, davka: int = 5) -> None:
+    """Spustí měření přesnosti v Ocenito: po dávkách ocení náhodné nabídky,
+    jako by je neviděl, a porovná s jejich cenou. Nakonec přepočítá kalibraci."""
+    base = url.rsplit("/api/", 1)[0] + "/api/presnost"
+    hotovo, chyb = 0, 0
+    while hotovo < vzorku and chyb < 5:
+        try:
+            r = requests.post(base, json={"pocet": davka}, headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+            r.raise_for_status()
+            hotovo += max(1, r.json().get("ulozeno", 0))
+        except requests.RequestException as ex:
+            chyb += 1
+            print(f"  přesnost: {ex}")
+            time.sleep(10)
+    r = requests.post(base, json={"kalibrovat": True}, headers={"Authorization": f"Bearer {klic}"}, timeout=60)
+    r.raise_for_status()
+    print(f"Přesnost: změřeno {hotovo} nabídek, kalibrace {r.json().get('kalibrace')}.")
 
 
 # ---------------------------------------------------------------- příležitosti
@@ -798,6 +985,10 @@ def main():
     sub.add_parser("souhrn", help="připíše dnešní agregát do data/trh_souhrn.csv")
     p = sub.add_parser("sync", help="pošle změněné nabídky do Ocenito (Cloudflare D1)")
     p.add_argument("--max", type=int, default=40_000, help="nejvýš nabídek za běh (limit zápisů D1)")
+    p = sub.add_parser("detaily", help="stáhne detaily nabídek (stav, typ stavby…), které ještě chybí")
+    p.add_argument("--limit", type=int, default=DETAIL_LIMIT)
+    p = sub.add_parser("presnost", help="spustí měření přesnosti ocenění v Ocenito")
+    p.add_argument("--vzorku", type=int, default=150)
     p = sub.add_parser("prilezitosti", help="vypíše nebo uloží nabídky výrazně pod cenou okolí")
     p.add_argument("--json", help="uložit do souboru JSON")
     a = ap.parse_args()
@@ -809,6 +1000,14 @@ def main():
         souhrn()
     elif a.cmd == "sync":
         sys.exit(sync(a.max))
+    elif a.cmd == "detaily":
+        sys.exit(stahni_detaily(a.limit))
+    elif a.cmd == "presnost":
+        klic = os.environ.get("OCENITO_SYNC_KLIC")
+        if not klic:
+            print("Chybí OCENITO_SYNC_KLIC.")
+            sys.exit(1)
+        presnost(os.environ.get("OCENITO_SYNC_URL", "https://ocenito.pages.dev/api/sync"), klic, a.vzorku)
     elif a.cmd == "prilezitosti":
         p = prilezitosti()
         if a.json:

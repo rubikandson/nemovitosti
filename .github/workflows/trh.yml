@@ -28,7 +28,7 @@ env:
 jobs:
   trh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4
 
@@ -53,6 +53,13 @@ jobs:
       - name: Stažení nabídek ze Sreality
         run: python -m src.trh stahnout 2>&1 | tee trh_log.txt
 
+      - name: Detaily nabídek (stav, typ stavby, energetická třída)
+        # Každá nabídka jednou, nejvýš 2 000 za běh. Když selže, nevadí,
+        # chybějící detaily se stáhnou příště.
+        run: python -m src.trh detaily
+        continue-on-error: true
+        timeout-minutes: 60
+
       - name: Stav databáze
         run: python -m src.trh prehled
 
@@ -63,6 +70,15 @@ jobs:
         continue-on-error: true
         env:
           OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
+
+      - name: Měření přesnosti ocenění
+        # Ocenito ocení náhodné nabídky, jako by je nevidělo, a porovná s cenou.
+        run: python -m src.trh presnost
+        continue-on-error: true
+        timeout-minutes: 20
+        env:
+          OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
+          OCENITO_SYNC_URL: https://ocenito.cz/api/sync
 
       - name: Oznámit stránky vyhledávačům (IndexNow)
         # Ceny na stránkách obcí se mění každý den; Seznam a Bing se to dozví hned.
