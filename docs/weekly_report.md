@@ -2,30 +2,30 @@
 
 _Report generuje GitHub Action (`weekly_report.yml`) automaticky každé pondělí z `docs/data.json`. Běží nezávisle na Claude i GPT._
 
-Data vygenerována: **2026-11-09T12:17:18**. Nové nabídky za posledních 7 dní splňující filtr — Praha: **10**, Střední Čechy: **10**. Report vytvořen: 2026-11-09 15:39 UTC.
+Data vygenerována: **2026-11-16T12:13:14**. Nové nabídky za posledních 7 dní splňující filtr — Praha: **10**, Střední Čechy: **10**. Report vytvořen: 2026-11-16 15:14 UTC.
 
 ## Praha
 
-- Holešovice — 1+kk, 22 m², 1 990 000 Kč, sleva 41.5 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/1+kk/praha-holesovice-ortenovo-namesti/1932984396
-- Vinohrady — 1+1, 33 m², 5 241 999 Kč, sleva 40.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/1+1/praha-vinohrady-korunni/2171236428
-- Nusle — 1+kk, 47 m², 5 290 000 Kč, sleva 35.7 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/1+kk/praha-nusle-rovnobezna/2677764172
-- Hloubětín — 4+1, 90 m², 8 997 000 Kč, sleva 33.9 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+1/praha-hloubetin-kardasovska/3558211660
-- Krč — 4+kk, 89 m², 8 995 000 Kč, sleva 33.2 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+kk/praha-krc-pod-visnovkou/7733324
-- Nové Město — 3+kk, 108 m², 14 490 000 Kč, sleva 30.7 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/praha-nove-mesto-zitna/4199997516
-- Nové Město — 2+kk, 50 m², 7 950 000 Kč, sleva 29.2 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/praha-nove-mesto-dittrichova/109379660
-- Hlubočepy — 3+1, 147 m², 14 499 000 Kč, sleva 27.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/praha-hlubocepy-krizeneckeho-namesti/1283645516
-- Josefov — 3+1, 88 m², 23 000 000 Kč, sleva 27.6 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/praha-josefov-valentinska/185991244
-- Košíře — 2+1, 59 m², 10 990 000 Kč, sleva 26.4 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+1/praha-kosire-v-cibulkach/3853910092
+- Kobylisy — Atypický, 388 m², 13 990 000 Kč, sleva 66.1 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/Atypický/praha-kobylisy-klapkova/2112385100
+- Hlubočepy — 2+kk, 47 m², 3 587 000 Kč, sleva 59.4 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/praha-hlubocepy-gollove/1467838540
+- Vysočany — 2+kk, 148 m², 9 850 000 Kč, sleva 57.2 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/praha-vysocany-sousedikova/2041344076
+- Košíře — Atypický, 178 m², 14 800 000 Kč, sleva 50.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/Atypický/praha-kosire-u-tyrse/518811724
+- Vinohrady — Atypický, 16 m², 1 790 000 Kč, sleva 46.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/Atypický/praha-vinohrady-jagellonska/4099502156
+- Libeň — 2+1, 63 m², 5 990 000 Kč, sleva 35.7 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+1/praha-liben-pod-labutkou/2628743244
+- Nové Město — Atypický, 295 m², 36 900 000 Kč, sleva 32.2 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/Atypický/praha-nove-mesto-havlickova/2424270924
+- Vinohrady — 1+kk, 25 m², 4 500 000 Kč, sleva 26.9 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/1+kk/praha-vinohrady-srobarova/4225658956
+- Smíchov — 5+1, 240 m², 27 850 000 Kč, sleva 26.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/5+1/praha-smichov-na-skalce/935882828
+- Liboc — 2+kk, 36 m², 5 950 000 Kč, sleva 23.2 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/praha-liboc-ruzynska/674132044
 
 ## Střední Čechy
 
-- Mladá Boleslav — 4+1, 224 m², 9 960 000 Kč, sleva 48.7 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+1/mlada-boleslav-podlazky/3002073164
-- Kladno — 2+kk, 120 m², 7 700 000 Kč, sleva 36.9 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/kladno-krocehlavy-armenska/221708364
-- Nové Strašecí — 3+kk, 102 m², 8 999 000 Kč, sleva 33.7 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/nove-straseci-pecinovska/2203517004
-- Nové Strašecí — 3+kk, 102 m², 8 699 000 Kč, sleva 32.5 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/nove-straseci-pecinovska/1364656204
-- Nové Strašecí — 3+kk, 102 m², 8 799 000 Kč, sleva 29.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/nove-straseci-pecinovska/542572620
-- Poděbrady — 4+1, 112 m², 7 899 000 Kč, sleva 28.1 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+1/podebrady-velke-zbozi-nymburska/1512505420
-- Kolín — 2+kk, 70 m², 4 490 000 Kč, sleva 27.5 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+kk/kolin-kolin-ii-prazska/4279566412
-- Nové Strašecí — 3+kk, 102 m², 8 499 000 Kč, sleva 25.6 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/nove-straseci-pecinovska/2706833484
-- Beroun — 5+1, 220 m², 15 500 000 Kč, sleva 22.9 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/5+1/beroun-beroun-mesto-u-zidovskeho-hrbitova/2165702732
-- Český Brod — 3+1, 72 m², 5 890 000 Kč, sleva 21.5 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/cesky-brod-cesky-brod-rokycanova/4159701068
+- Rakovník — 2+1, 79 m², 4 890 000 Kč, sleva 19.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+1/rakovnik-rakovnik-ii-dukel-hrdinu/1334603852
+- Jílové u Prahy — 4+kk, 140 m², 9 000 000 Kč, sleva 18.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+kk/jilove-u-prahy/1126002764
+- Hořovice — 4+kk, 79 m², 5 490 000 Kč, sleva 18.6 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/4+kk/horovice-horovice/889745484
+- Příbram — 3+1, 78 m², 4 900 000 Kč, sleva 18.1 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/pribram-pribram-vii-bratri-capku/4026036300
+- Benešov — 3+kk, 66 m², 4 990 000 Kč, sleva 17.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/benesov-benesov-husova/1234071628
+- Mladá Boleslav — 3+1, 78 m², 4 890 000 Kč, sleva 15.0 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/mlada-boleslav-mlada-boleslav-ii-u-stadionu/537096268
+- Hořovice — 3+kk, 58 m², 4 576 000 Kč, sleva 14.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+kk/horovice-horovice-prazska/2577166412
+- Příbram — 2+1, 60 m², 4 500 000 Kč, sleva 11.8 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/2+1/pribram-pribram-vii-trida-osvobozeni/1590194252
+- Hostivice — 1+kk, 43 m², 5 990 000 Kč, sleva 11.5 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/1+kk/hostivice-hostivice-zitna/2367254604
+- Kladno — 3+1, 72 m², 5 750 000 Kč, sleva 10.6 % vs. tržní — https://www.sreality.cz/detail/prodej/byt/3+1/kladno-kladno-m-svabinskeho/3285086284
