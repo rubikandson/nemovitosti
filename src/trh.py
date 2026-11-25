@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS behy (
 
 def connect(cesta: Path = DB_PATH):
     cesta.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(cesta)
+    # timeout: když do databáze ještě zapisuje jiný krok, počkat, místo okamžité chyby „database is locked“
+    con = sqlite3.connect(cesta, timeout=180)
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
     return con
@@ -736,7 +737,13 @@ def stahni_detaily(limit: int = DETAIL_LIMIT) -> int:
         "ORDER BY n.kategorie = 'byt', n.datum_prvni DESC LIMIT ?", (limit,))]
     print(f"Detaily: stahuji {len(rows)} nabídek.")
     dnes, ok, chyb, blok = date.today().isoformat(), 0, 0, 0
+    # Vlastní časový strop (výchozí 45 minut): skončit sami a čistě dřív, než krok násilně ukončí GitHub.
+    # Násilně ukončený proces nechal 25. 11. 2026 databázi zamčenou a následná synchronizace do Ocenita spadla.
+    konec = time.time() + 60 * float(os.environ.get("TRH_DETAILY_MINUT", "45"))
     for i, h in enumerate(rows):
+        if time.time() > konec:
+            print(f"Detaily: vypršel čas, hotovo {i} z {len(rows)}, zbytek příště.")
+            break
         try:
             r = requests.get(DETAIL_API.format(h), headers=DETAIL_HEADERS, timeout=20)
         except requests.RequestException as ex:
@@ -764,7 +771,7 @@ def stahni_detaily(limit: int = DETAIL_LIMIT) -> int:
         else:
             chyb += 1
             print(f"  {h}: HTTP {r.status_code}")
-        if i % 100 == 99:
+        if i % 25 == 24:   # krátké transakce: zámek pro zápis se drží jen chvíli
             con.commit()
         time.sleep(DETAIL_PAUZA_S)
     con.commit()

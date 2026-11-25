@@ -65,8 +65,14 @@ jobs:
 
       - name: Synchronizace do Ocenito (Cloudflare D1)
         # Posílá jen změny; když selže, databáze se nahraje stejně a zbytek
-        # dorovná příští běh (tabulka d1_stav v trh.db).
-        run: python -m src.trh sync
+        # dorovná příští běh (tabulka d1_stav v trh.db). Selhání ale na konci
+        # úlohy ohlásíme (krok „Synchronizace selhala“), ať nezůstane bez povšimnutí.
+        id: sync
+        run: |
+          # kdyby po kroku s detaily zůstal běžet jeho proces, drží zámek databáze
+          pkill -f "src.trh detaily" || true
+          sleep 3
+          python -m src.trh sync || { echo "První pokus selhal, zkouším znovu za minutu."; sleep 60; python -m src.trh sync; }
         continue-on-error: true
         env:
           OCENITO_SYNC_KLIC: ${{ secrets.OCENITO_SYNC_KLIC }}
@@ -132,3 +138,11 @@ jobs:
             fi
             sleep $((RANDOM % 8 + 2))
           done
+
+      - name: Synchronizace selhala
+        # Až úplně na konci, aby se databáze i souhrn uložily. Web Ocenito má
+        # v takovém případě včerejší nabídky; GitHub pošle upozornění e-mailem.
+        if: steps.sync.outcome == 'failure'
+        run: |
+          echo "Synchronizace nabídek do Ocenita dnes selhala (viz krok výše). Zítřejší běh pošle i dnešní změny." >&2
+          exit 1
